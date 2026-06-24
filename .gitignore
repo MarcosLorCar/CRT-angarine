@@ -19,8 +19,7 @@ backend/node_modules/
 # Build outputs
 dist/
 build/
-web-ui/dist/
-backend/dist/
+webapp/dist/
 .json
 .tsbuildinfo
 
@@ -39,25 +38,27 @@ pnpm-debug.log*
 .env.production.local
 backend/.env
 
+Ini, TOML
+
 # ==========================================
 # 3. Minecraft Mod (Java / Gradle / Fabric)
 # ==========================================
 # Gradle lifecycle files
-minecraft-mod/.gradle/
-minecraft-mod/build/
-minecraft-mod/out/
+mod/.gradle/
+mod/build/
+mod/out/
 
 # Minecraft run directories (Where the test server/client launch)
-minecraft-mod/run/
-minecraft-mod/runServer/
-minecraft-mod/runClient/
-minecraft-mod/.mixin.out/
+mod/run/
+mod/runServer/
+mod/runClient/
+mod/.mixin.out/
 
 # Loom caching
-minecraft-mod/.gradle/loom-cache/
+mod/.gradle/loom-cache/
 
 # Generated production jars
-minecraft-mod/build/libs/
+mod/build/libs/
 *.jar
 
 # ==========================================
@@ -72,8 +73,8 @@ minecraft-mod/build/libs/
 *.iml
 *.ipr
 *.iws
-minecraft-mod/.idea/
-minecraft-mod/*.iml
+mod/.idea/
+mod/*.iml
 
 # Crash logs
 hs_err_pid*
