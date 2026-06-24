@@ -75,6 +75,7 @@ mod/build/libs/
 *.iws
 mod/.idea/
 mod/*.iml
+*/.junie
 
 # Crash logs
 hs_err_pid*

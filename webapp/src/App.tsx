@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
@@ -6,6 +6,17 @@ import './App.css'
 
 function App() {
   const [count, setCount] = useState(0)
+  const [apiMessage, setApiMessage] = useState<string>('Loading from backend...')
+
+  useEffect(() => {
+    fetch('/api/hello')
+      .then((res) => res.json())
+      .then((data) => setApiMessage(data.message))
+      .catch((err) => {
+        console.error('Error fetching API:', err);
+        setApiMessage('Failed to connect to backend.');
+      });
+  }, [])
 
   return (
     <>
@@ -20,6 +31,9 @@ function App() {
           <p>
             Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
           </p>
+          <div style={{ margin: '1.5rem 0', padding: '0.8rem 1.2rem', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.1)', fontSize: '0.95rem' }}>
+            <strong>Backend API:</strong> <span style={{ color: '#646cff' }}>{apiMessage}</span>
+          </div>
         </div>
         <button
           type="button"
