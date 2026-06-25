@@ -1,32 +1,45 @@
 plugins {
     alias(libs.plugins.kotlin.jvm)
-    alias(ktorLibs.plugins.ktor)
     alias(libs.plugins.kotlin.serialization)
+    id("com.gradleup.shadow") version "9.4.2"
+    application
 }
 
 group = "me.orange"
 version = "1.0.0-SNAPSHOT"
 
 application {
-    mainClass = "io.ktor.server.netty.EngineMain"
+    mainClass.set("io.ktor.server.netty.EngineMain")
 }
 
 kotlin {
     jvmToolchain(25)
 }
+
+tasks.withType<JavaCompile> {
+    options.release.set(21)
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+    }
+}
+
 dependencies {
+    val ktor_version = "3.0.1"
     implementation(project(":shared"))
-    implementation(ktorLibs.serialization.kotlinx.json)
-    implementation(ktorLibs.server.config.yaml)
-    implementation(ktorLibs.server.contentNegotiation)
-    implementation(ktorLibs.server.core)
-    implementation(ktorLibs.server.cors)
-    implementation(ktorLibs.server.netty)
-    implementation(ktorLibs.server.websockets)
+    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor_version")
+    implementation("io.ktor:ktor-server-config-yaml:$ktor_version")
+    implementation("io.ktor:ktor-server-content-negotiation:$ktor_version")
+    implementation("io.ktor:ktor-server-core:$ktor_version")
+    implementation("io.ktor:ktor-server-cors:$ktor_version")
+    implementation("io.ktor:ktor-server-netty:$ktor_version")
+    implementation("io.ktor:ktor-server-websockets:$ktor_version")
     implementation(libs.logback.classic)
 
     testImplementation(kotlin("test"))
-    testImplementation(ktorLibs.server.testHost)
+    testImplementation("io.ktor:ktor-server-test-host:$ktor_version")
 }
 
 val buildWebapp = tasks.register<Exec>("buildWebapp") {

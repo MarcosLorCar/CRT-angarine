@@ -3,6 +3,7 @@ package me.orange
 import io.ktor.client.request.get
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
+import io.ktor.server.testing.ApplicationTestBuilder
 import kotlin.test.*
 
 class ServerTest {
@@ -15,4 +16,13 @@ class ServerTest {
         assertEquals(HttpStatusCode.OK, client.get("/").status)
     }
 
+}
+
+private fun ApplicationTestBuilder.configure() {
+    application {
+        configureHttp()
+        configureSerialization()
+        configureWebsockets()
+        configureRouting()
+    }
 }
