@@ -29,6 +29,8 @@ object Crtangarine {
 
         // Register the KDeferredRegister to the mod-specific event bus
         ModBlocks.REGISTRY.register(MOD_BUS)
+        ModBlocks.ITEM_REGISTRY.register(MOD_BUS)
+        ModBlocks.CREATIVE_TAB_REGISTRY.register(MOD_BUS)
 
         // Register the common setup event listener directly on the mod bus
         MOD_BUS.addListener(::onCommonSetup)

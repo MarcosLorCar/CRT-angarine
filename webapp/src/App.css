@@ -90,3 +90,123 @@ main {
   color: #666;
   font-size: 1.2rem;
 }
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: #1a1a1a;
+  border-bottom: 1px solid #333;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.auth-status {
+  color: #4CAF50;
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+.logout-btn {
+  background-color: #333;
+  color: white;
+  border: 1px solid #555;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.logout-btn:hover {
+  background-color: #444;
+}
+
+.camera-name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: bold;
+}
+
+.camera-zone {
+  font-size: 0.8rem;
+  color: #999;
+  margin-top: 0.2rem;
+  padding-left: 1.1rem;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-dot.online {
+  background-color: #4CAF50;
+}
+
+.status-dot.offline {
+  background-color: #f44336;
+}
+
+.login-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  align-items: center;
+  justify-content: center;
+  background-color: #121212;
+}
+
+.login-form {
+  background-color: #242424;
+  padding: 2rem;
+  border-radius: 8px;
+  border: 1px solid #333;
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.login-form h2 {
+  margin: 0;
+}
+
+.login-form input {
+  padding: 0.8rem;
+  border-radius: 4px;
+  border: 1px solid #444;
+  background-color: #1a1a1a;
+  color: white;
+}
+
+.login-form button {
+  padding: 0.8rem;
+  border-radius: 4px;
+  border: none;
+  background-color: #646cff;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.login-form button:hover:not(:disabled) {
+  background-color: #535bf2;
+}
+
+.login-form button:disabled {
+  background-color: #444;
+  cursor: not-allowed;
+}
+
+.error {
+  color: #f44336;
+  font-size: 0.9rem;
+}

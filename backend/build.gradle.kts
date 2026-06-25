@@ -28,3 +28,29 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(ktorLibs.server.testHost)
 }
+
+val buildWebapp = tasks.register<Exec>("buildWebapp") {
+    description = "Builds the frontend webapp"
+    inputs.dir(file("../webapp/src"))
+    inputs.file(file("../webapp/package.json"))
+    inputs.file(file("../webapp/package-lock.json"))
+    inputs.file(file("../webapp/vite.config.ts"))
+    inputs.file(file("../webapp/index.html"))
+    outputs.dir(file("../webapp/dist"))
+
+    workingDir(file("../webapp"))
+    val isWindows = System.getProperty("os.name").lowercase().contains("win")
+    if (isWindows) {
+        commandLine("cmd", "/c", "npm install && npm run build")
+    } else {
+        commandLine("sh", "-c", "npm install && npm run build")
+    }
+}
+
+tasks.processResources {
+    dependsOn(buildWebapp)
+    from(file("../webapp/dist")) {
+        into("static")
+    }
+}
+

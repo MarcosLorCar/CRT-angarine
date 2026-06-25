@@ -19,7 +19,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "crt-angarine-parent"
+rootProject.name = "CRTangarine"
 
 include("mod")
 include("shared")

@@ -99,7 +99,9 @@ neoForge {
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 configurations.configureEach {
-    exclude group: 'org.slf4j', module: 'slf4j-api'
+    resolutionStrategy {
+        force 'org.slf4j:slf4j-api:2.0.9'
+    }
 }
 
 dependencies {
