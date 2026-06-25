@@ -1,0 +1,9 @@
+ktor:
+  deployment:
+    port: 8080
+  application:
+    modules:
+      - me.orange.HttpKt.configureHttp
+      - me.orange.SerializationKt.configureSerialization
+      - me.orange.WebsocketsKt.configureWebsockets
+      - me.orange.RoutingKt.configureRouting
