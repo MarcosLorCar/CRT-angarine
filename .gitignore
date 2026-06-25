@@ -69,6 +69,7 @@ mod/build/libs/
 !.vscode/launch.json
 
 # IntelliJ IDEA
+.gradle
 .idea/
 *.iml
 *.ipr

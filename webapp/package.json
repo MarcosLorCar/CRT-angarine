@@ -4,13 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev:frontend": "vite --host",
-    "dev:backend": "npm run dev --prefix server",
-    "dev": "concurrently --kill-others --names \"frontend,backend\" --prefix-colors \"cyan,yellow\" \"npm run dev:frontend\" \"npm run dev:backend\"",
-    "build:frontend": "tsc -b && vite build",
-    "build:backend": "npm run build --prefix server",
-    "build": "npm run build:frontend && npm run build:backend",
-    "start": "cross-env NODE_ENV=production npm run start --prefix server",
+    "dev": "vite --host",
+    "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
