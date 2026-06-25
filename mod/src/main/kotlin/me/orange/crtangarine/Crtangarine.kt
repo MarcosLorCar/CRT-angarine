@@ -47,9 +47,9 @@ object Crtangarine {
     }
 
     /**
-     * This is used for initializing client specific
+     * This is used for initializing client-specific
      * things such as renderers and keymaps
-     * Fired on the mod specific event bus.
+     * Fired on the mod-specific event bus.
      */
     private fun onClientSetup(event: FMLClientSetupEvent) {
         LOGGER.log(Level.INFO, "Initializing client...")
