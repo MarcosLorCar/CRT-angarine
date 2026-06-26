@@ -1,10 +1,9 @@
 package me.orange.crtangarine.item
 
 import me.orange.crtangarine.client.openKeycardScreen
-import me.orange.crtangarine.shared.AuthTokenPacket
-import me.orange.crtangarine.shared.CryptoUtils
-import kotlinx.serialization.encodeToString
+import me.orange.crtangarine.shared.*
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.encodeToString
 import net.minecraft.core.component.DataComponents
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResultHolder
@@ -78,12 +77,17 @@ class SecurityKeycardItem(properties: Properties) : Item(properties) {
         CompletableFuture.runAsync {
             try {
                 val encrypted = CryptoUtils.encrypt(token)
-                val packet = AuthTokenPacket(playerUuid, encrypted, emptyList())
-                val body = Json.encodeToString(packet)
+                val packet = AuthTokenPacket(
+                    playerUuid = playerUuid,
+                    encryptedToken = encrypted,
+                    assignedStations = emptyList()
+                )
+                val body = kotlinx.serialization.json.Json.encodeToString(packet)
 
+                val backendUri = me.orange.crtangarine.network.ModConfiguration.CONFIG.backendUri.get()
                 val client = HttpClient.newHttpClient()
                 val request = HttpRequest.newBuilder()
-                    .uri(URI.create("http://localhost:8080/api/register-token"))
+                    .uri(URI.create("http://$backendUri/api/register-token"))
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(body))
                     .build()

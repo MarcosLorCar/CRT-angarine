@@ -1,10 +1,17 @@
 package me.orange.crtangarine
 
 import me.orange.crtangarine.block.ModBlocks
+import me.orange.crtangarine.block.CameraBlockRenderer
 import me.orange.crtangarine.client.ClientInputHandler
 import me.orange.crtangarine.client.onRegisterScreens
+import me.orange.crtangarine.model.ModelLayers
+import me.orange.crtangarine.network.ModConfiguration
 import net.minecraft.client.Minecraft
+import net.minecraft.client.resources.model.ModelResourceLocation
+import net.minecraft.resources.ResourceLocation
 import net.neoforged.fml.common.Mod
+import net.neoforged.neoforge.client.event.EntityRenderersEvent
+import net.neoforged.neoforge.client.event.ModelEvent
 
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
@@ -13,6 +20,8 @@ import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import me.orange.crtangarine.network.ModNetworking
+import net.neoforged.fml.ModLoadingContext
+import net.neoforged.fml.config.ModConfig
 import net.neoforged.neoforge.common.NeoForge.EVENT_BUS
 import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
 import thedarkcolour.kotlinforforge.neoforge.forge.runForDist
@@ -32,6 +41,10 @@ object Crtangarine {
 
     init {
         LOGGER.log(Level.INFO, "Hello world!")
+
+        // Register configuration
+        val container = ModLoadingContext.get().activeContainer
+        container.registerConfig(ModConfig.Type.COMMON, ModConfiguration.SPEC)
 
         // Register the KDeferredRegister to the mod-specific event bus
         ModBlocks.REGISTRY.register(MOD_BUS)
@@ -55,6 +68,8 @@ object Crtangarine {
             clientTarget = {
                 MOD_BUS.addListener(::onClientSetup)
                 MOD_BUS.addListener(::onRegisterScreens)
+                MOD_BUS.addListener(::onRegisterRenderers)
+                MOD_BUS.addListener(::onRegisterAdditionalModels)
                 EVENT_BUS.register(ClientInputHandler)
                 Minecraft.getInstance()
             },
@@ -74,6 +89,25 @@ object Crtangarine {
      */
     private fun onClientSetup(event: FMLClientSetupEvent) {
         LOGGER.log(Level.INFO, "Initializing client...")
+    }
+
+    private fun onRegisterRenderers(event: EntityRenderersEvent.RegisterRenderers) {
+        event.registerBlockEntityRenderer(ModBlocks.CAMERA_BLOCK_ENTITY_TYPE, ::CameraBlockRenderer)
+    }
+
+    private fun onRegisterAdditionalModels(event: ModelEvent.RegisterAdditional) {
+        event.register(
+            ModelResourceLocation(
+                ResourceLocation.fromNamespaceAndPath(ID, "block/security_camera_baseplate"),
+                "standalone"
+            )
+        )
+        event.register(
+            ModelResourceLocation(
+                ResourceLocation.fromNamespaceAndPath(ID, "block/security_camera_body"),
+                "standalone"
+            )
+        )
     }
 
     /**

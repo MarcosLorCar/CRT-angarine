@@ -1,3 +1,6 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
     id 'java-library'
     id 'idea'
@@ -22,15 +25,15 @@ base {
     archivesName = mod_id
 }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(25)
-kotlin.jvmToolchain(25)
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+kotlin.jvmToolchain(21)
 
 tasks.withType(JavaCompile).configureEach {
     options.release = 21
 }
-tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+tasks.withType(KotlinCompile).configureEach {
     compilerOptions {
-        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
+        jvmTarget = JvmTarget.JVM_21
     }
 }
 
@@ -151,6 +154,13 @@ tasks.register('unpackEmbed', Copy) {
     exclude 'kotlinx/serialization/**'
     exclude 'kotlinx/coroutines/**'
     exclude 'kotlin/**'
+    exclude 'com/google/errorprone/**'
+    exclude 'com/google/j2objc/**'
+    exclude 'com/google/common/**'
+    exclude 'com/google/thirdparty/**'
+    exclude 'com/google/gson/**'
+    exclude 'javax/annotation/**'
+    exclude 'org/checkerframework/**'
 
     dependsOn configurations.embed
     dependsOn processResources
