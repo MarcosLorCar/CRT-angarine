@@ -1,5 +1,6 @@
 package me.orange
 
+import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import io.ktor.websocket.DefaultWebSocketSession
@@ -9,8 +10,41 @@ import kotlinx.serialization.encodeToString
 import me.orange.crtangarine.shared.*
 
 object CameraStreamRegistry {
+    private val file = File("stations.json")
+
     // Station position string -> StationInfo
     val stations = ConcurrentHashMap<String, StationInfo>()
+
+    init {
+        load()
+    }
+
+    @Synchronized
+    fun load() {
+        try {
+            if (file.exists()) {
+                val content = file.readText()
+                val list = Json.decodeFromString<List<StationInfo>>(content)
+                stations.clear()
+                for (station in list) {
+                    stations[station.pos] = station
+                }
+            }
+        } catch (e: Exception) {
+            System.err.println("Error loading stations.json: ${e.message}")
+        }
+    }
+
+    @Synchronized
+    private fun save() {
+        try {
+            val list = stations.values.toList()
+            val content = Json.encodeToString(list)
+            file.writeText(content)
+        } catch (e: Exception) {
+            System.err.println("Error saving stations.json: ${e.message}")
+        }
+    }
 
     // Set of active streaming cameras (cameraId -> count of web clients watching it)
     val activeStreamingCameras = ConcurrentHashMap<String, Int>()
@@ -30,6 +64,7 @@ object CameraStreamRegistry {
         for (station in newStations) {
             stations[station.pos] = station
         }
+        save()
     }
 
     suspend fun broadcastRegistryToWebClients(playerUuid: String) {
@@ -53,11 +88,12 @@ object CameraStreamRegistry {
                 station.cameras.map { cam ->
                     CameraData(
                         id = cam.pos,
-                        name = if (station.customName.isNotEmpty()) "${station.customName} - ${cam.name}" else cam.name,
+                        name = cam.name,
                         x = cam.x,
                         y = cam.y,
                         z = cam.z,
-                        isOnline = cam.isOnline
+                        isOnline = cam.isOnline,
+                        stationName = if (station.customName.isNotEmpty()) station.customName else "Station [${station.pos}]"
                     )
                 }
             }

@@ -2,9 +2,9 @@
 	"format_version": "1.9.0",
 	"credit": "Made with Blockbench",
 	"textures": {
-		"0": "camera_tex0",
-		"1": "camera_tex1",
-		"particle": "camera_tex0"
+		"0": "crtangarine:block/camera_body",
+		"1": "crtangarine:block/camera_baseplate",
+		"particle": "crtangarine:block/camera_body"
 	},
 	"elements": [
 		{

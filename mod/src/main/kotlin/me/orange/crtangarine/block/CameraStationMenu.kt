@@ -16,23 +16,27 @@ class CameraStationMenu(windowId: Int, playerInv: Inventory, val blockPos: Block
     val container = blockEntity?.inventory ?: net.minecraft.world.SimpleContainer(1)
 
     init {
-        // Slot for Security Keycard at (80, 18)
-        addSlot(object : Slot(container, 0, 80, 18) {
+        // Slot for Security Keycard
+        addSlot(object : Slot(container, 0, 107, 20) {
             override fun mayPlace(stack: ItemStack): Boolean {
-                return stack.item is SecurityKeycardItem
+                return blockEntity?.ownerUuid?.isEmpty() == true && stack.item is SecurityKeycardItem
+            }
+
+            override fun isActive(): Boolean {
+                return blockEntity?.ownerUuid?.isEmpty() == true
             }
         })
 
         // Player Inventory Slots starting at y = 84
         for (row in 0..2) {
             for (col in 0..8) {
-                addSlot(Slot(playerInv, col + row * 9 + 9, 8 + col * 18, 84 + row * 18))
+                addSlot(Slot(playerInv, col + row * 9 + 9, 8 + col * 18, 51 + row * 18))
             }
         }
 
         // Player Hotbar Slots starting at y = 142
         for (col in 0..8) {
-            addSlot(Slot(playerInv, col, 8 + col * 18, 142))
+            addSlot(Slot(playerInv, col, 8 + col * 18, 109))
         }
     }
 
@@ -53,6 +57,13 @@ class CameraStationMenu(windowId: Int, playerInv: Inventory, val blockPos: Block
                     if (currentOwner.isEmpty() || currentOwner == player.uuid.toString()) {
                         blockEntity?.ownerUuid = keycardOwner
                         blockEntity?.setChanged()
+                        
+                        // Return the keycard to the player or drop it
+                        if (!player.inventory.add(keycard)) {
+                            player.drop(keycard, false)
+                        }
+                        container.setItem(0, ItemStack.EMPTY)
+
                         blockEntity?.level?.sendBlockUpdated(blockPos, blockEntity.blockState, blockEntity.blockState, 3)
                         CameraStationRegistry.triggerUpdate()
                         return true
@@ -66,7 +77,7 @@ class CameraStationMenu(windowId: Int, playerInv: Inventory, val blockPos: Block
     override fun quickMoveStack(player: Player, index: Int): ItemStack {
         var itemstack = ItemStack.EMPTY
         val slot = slots[index]
-        if (slot != null && slot.hasItem()) {
+        if (slot.hasItem()) {
             val itemstack1 = slot.item
             itemstack = itemstack1.copy()
             if (index == 0) {

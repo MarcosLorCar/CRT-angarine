@@ -6,7 +6,17 @@ import { Viewport } from './components/Viewport'
 import './App.css'
 
 function App() {
-  const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'))
+  const [token, setToken] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get('token');
+    if (urlToken) {
+      localStorage.setItem('auth_token', urlToken);
+      // Clean up URL parameters so it doesn't linger in the address bar
+      window.history.replaceState({}, document.title, window.location.pathname);
+      return urlToken;
+    }
+    return localStorage.getItem('auth_token');
+  })
   const [loginInput, setLoginInput] = useState('')
   const [loginError, setLoginError] = useState('')
   const [isLoggingIn, setIsLoggingIn] = useState(false)

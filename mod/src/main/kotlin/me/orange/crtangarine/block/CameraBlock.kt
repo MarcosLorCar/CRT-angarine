@@ -112,7 +112,8 @@ class CameraBlock(properties: Properties) : Block(properties), EntityBlock {
 
         val stack = player.getItemInHand(InteractionHand.MAIN_HAND)
         if (stack.item !is SecurityKeycardItem) {
-            return InteractionResult.PASS
+            player.displayClientMessage(Component.literal("Error: You must hold a Security Keycard bound to a station to interact with this camera!"), true)
+            return InteractionResult.FAIL
         }
 
         val customData = stack.get(DataComponents.CUSTOM_DATA) ?: CustomData.EMPTY
@@ -139,6 +140,19 @@ class CameraBlock(properties: Properties) : Block(properties), EntityBlock {
 
         if (stationBe.ownerUuid != player.uuid.toString()) {
             player.displayClientMessage(Component.literal("Error: You do not own the linked station!"), true)
+            return InteractionResult.FAIL
+        }
+
+        // Distance Check
+        val distance = kotlin.math.sqrt(pos.distSqr(stationPos).toDouble())
+        val maxDistance = 32.0
+        if (distance > maxDistance) {
+            val formattedDistance = String.format(java.util.Locale.US, "%.1f", distance)
+            val formattedMax = String.format(java.util.Locale.US, "%.1f", maxDistance)
+            player.displayClientMessage(
+                Component.literal("Error: Camera is too far from the station! (Distance: $formattedDistance, Max Range: $formattedMax)"),
+                false
+            )
             return InteractionResult.FAIL
         }
 

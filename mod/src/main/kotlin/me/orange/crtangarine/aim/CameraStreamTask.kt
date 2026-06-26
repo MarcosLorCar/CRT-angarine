@@ -10,7 +10,9 @@ import net.minecraft.world.entity.item.ItemEntity
 import net.minecraft.world.entity.monster.Monster
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.ClipContext
 import net.minecraft.world.phys.AABB
+import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
 import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.neoforge.event.tick.ServerTickEvent
@@ -149,6 +151,19 @@ object CameraStreamTask {
 
             val dot = vec.dot(lookDir) / dist
             if (dot >= cosLimit) {
+                val endVec = Vec3(ep.x, ep.y + (entity.bbHeight / 2.0), ep.z)
+                val clipContext = ClipContext(
+                    camCenter,
+                    endVec,
+                    ClipContext.Block.COLLIDER,
+                    ClipContext.Fluid.NONE,
+                    entity
+                )
+                val hitResult = level.clip(clipContext)
+                if (hitResult.type == HitResult.Type.BLOCK && hitResult.blockPos != camPos) {
+                    continue
+                }
+
                 val classification = when (entity) {
                     is Player -> "PLAYER"
                     is Monster -> "MONSTER"

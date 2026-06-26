@@ -65,6 +65,9 @@ class CameraStationBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(M
     override fun setRemoved() {
         super.setRemoved()
         if (level != null && !level!!.isClientSide) {
+            for (camPos in linkedCameras) {
+                me.orange.crtangarine.network.CameraStreamingClient.activeStreamingCameras.remove(camPos)
+            }
             CameraStationRegistry.unregister(this)
         }
     }

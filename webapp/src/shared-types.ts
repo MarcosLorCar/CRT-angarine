@@ -5,6 +5,7 @@ export interface CameraData {
   y: number;
   z: number;
   isOnline: boolean;
+  stationName: string;
 }
 
 export interface CameraInfo {

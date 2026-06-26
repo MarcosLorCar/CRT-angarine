@@ -9,7 +9,8 @@ data class CameraData(
     val x: Double,
     val y: Double,
     val z: Double,
-    val isOnline: Boolean
+    val isOnline: Boolean,
+    val stationName: String = ""
 )
 
 @Serializable

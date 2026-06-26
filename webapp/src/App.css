@@ -253,6 +253,22 @@ header h1 {
   text-shadow: 0 0 5px var(--term-green);
 }
 
+.station-group {
+  margin-bottom: 1.2rem;
+}
+
+.station-header {
+  font-size: 0.85rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: var(--term-green);
+  border-left: 2px solid var(--term-green);
+  padding-left: 0.5rem;
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 3px var(--term-green-glow);
+}
+
 .camera-list-panel ul {
   list-style: none;
   padding: 0;
