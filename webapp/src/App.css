@@ -338,28 +338,55 @@ header h1 {
 }
 
 /* Overlay UI inside Canvas */
-.hud-overlay {
+/* Toggable Info Overlay inside Canvas */
+.info-toggle-btn {
   position: absolute;
   top: 1rem;
-  left: 1rem;
-  pointer-events: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  z-index: 10;
+  right: 1rem;
+  background-color: var(--term-bg-panel);
+  color: var(--term-green);
+  border: 1px solid var(--term-border);
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  z-index: 15;
+  transition: all 0.2s;
+  text-shadow: 0 0 4px var(--term-green);
 }
 
-.hud-panel {
+.info-toggle-btn:hover {
+  border-color: var(--term-green);
+  background-color: rgba(51, 255, 51, 0.1);
+  box-shadow: 0 0 8px var(--term-green-glow);
+}
+
+.info-toggle-btn.active {
+  background-color: var(--term-green);
+  color: var(--term-bg);
+  box-shadow: 0 0 8px var(--term-green);
+  border-color: var(--term-green);
+  text-shadow: none;
+}
+
+.hud-panel-topright {
+  position: absolute;
+  top: 3.5rem;
+  right: 1rem;
   background: var(--term-bg-panel);
   border: 1px solid var(--term-border);
   padding: 0.6rem 1rem;
   border-radius: 4px;
   font-size: 0.9rem;
   text-shadow: 0 0 4px var(--term-green);
-  pointer-events: auto;
+  z-index: 10;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+  min-width: 200px;
 }
 
-.hud-panel h3 {
+.hud-panel-topright h3 {
   margin: 0 0 0.4rem 0;
   font-size: 1.1rem;
   text-transform: uppercase;
