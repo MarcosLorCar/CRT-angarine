@@ -9,10 +9,10 @@ import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.state.BlockState
 
 class CameraBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(ModBlocks.CAMERA_BLOCK_ENTITY_TYPE, pos, state) {
-    var pitch: Float = 0.0f
+    var pitch: Float = 45.0f
     var yaw: Float = run {
-        val facing = if (state.hasProperty(HorizontalDirectionalBlock.FACING)) {
-            state.getValue(HorizontalDirectionalBlock.FACING)
+        val facing = if (state.hasProperty(CameraBlock.FACING)) {
+            state.getValue(CameraBlock.FACING)
         } else {
             Direction.NORTH
         }

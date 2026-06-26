@@ -79,7 +79,7 @@ object CameraStreamTask {
 
     private fun sendFrustumData(level: ServerLevel, camPos: BlockPos, camCenter: Vec3, lookDir: Vec3, cameraId: String, pitch: Float, yaw: Float) {
         val blocksList = mutableListOf<BlockData>()
-        val radius = 24 // reduced from 32 to scale down cube size from 274,625 to 117,649 blocks
+        val radius = 36 // increased from 24 to scale up capture distance
         val minX = camPos.x - radius
         val maxX = camPos.x + radius
         val minY = (camPos.y - radius).coerceAtLeast(level.minBuildHeight)
@@ -87,7 +87,7 @@ object CameraStreamTask {
         val minZ = camPos.z - radius
         val maxZ = camPos.z + radius
 
-        val cos35 = 0.81915f
+        val cosLimit = 0.342f // 70 degree half-angle to cover diagonal corners of 90 degree vertical FOV
         val radiusSq = (radius * radius).toDouble()
         val camCenterX = camCenter.x
         val camCenterY = camCenter.y
@@ -109,12 +109,19 @@ object CameraStreamTask {
 
                     val dist = Math.sqrt(distSq)
                     val dot = (dx * lookX + dy * lookY + dz * lookZ) / dist
-                    if (dot >= cos35) {
+                    if (dot >= cosLimit) {
                         val p = BlockPos(x, y, z)
                         val state = level.getBlockState(p)
                         val classId = classifyBlock(state)
                         if (classId != 0) { // Only send non-air/non-passable blocks to keep payload small
-                            blocksList.add(BlockData(x, y, z, classId))
+                            blocksList.add(
+                                BlockData(
+                                    x = x,
+                                    y = y,
+                                    z = z,
+                                    stateId = classId
+                                )
+                            )
                         }
                     }
                 }
@@ -125,19 +132,23 @@ object CameraStreamTask {
     }
 
     private fun sendEntityData(level: ServerLevel, camPos: BlockPos, camCenter: Vec3, lookDir: Vec3, cameraId: String) {
-        val box = AABB(camPos).inflate(32.0)
+        val box = AABB(camPos).inflate(36.0)
         val rawEntities = level.getEntities(null, box)
         val entitiesList = mutableListOf<EntityData>()
-        val cos35 = 0.81915f
+        val cosLimit = 0.342f // 70 degree half-angle to cover diagonal corners of 90 degree vertical FOV
 
         for (entity in rawEntities) {
+            // Exclude players currently aiming a camera (they are the camera itself)
+            if (entity is Player && CameraAimManager.sessions.containsKey(entity.uuid)) {
+                continue
+            }
             val ep = entity.position()
             val vec = Vec3(ep.x - camCenter.x, ep.y + (entity.bbHeight / 2) - camCenter.y, ep.z - camCenter.z)
             val dist = vec.length()
-            if (dist > 32.0 || dist == 0.0) continue
+            if (dist > 36.0 || dist == 0.0) continue
 
             val dot = vec.dot(lookDir) / dist
-            if (dot >= cos35) {
+            if (dot >= cosLimit) {
                 val classification = when (entity) {
                     is Player -> "PLAYER"
                     is Monster -> "MONSTER"

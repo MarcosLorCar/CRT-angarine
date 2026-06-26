@@ -2,6 +2,7 @@ package me.orange.crtangarine.client
 
 import me.orange.crtangarine.block.CameraStationMenu
 import me.orange.crtangarine.network.AimCameraPayload
+import me.orange.crtangarine.network.LocateCameraPayload
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
 import net.minecraft.client.gui.components.Button
 import net.minecraft.client.gui.components.EditBox
@@ -42,16 +43,32 @@ class CameraStationScreen(menu: CameraStationMenu, playerInv: Inventory, title: 
 
         addRenderableWidget(nameEdit)
 
-        // Add Aim buttons for linked cameras
+        // Add Aim, Locate and Unlink buttons for linked cameras
         val cameras = menu.blockEntity?.linkedCameras ?: emptyList()
         var yOffset = 20
         for (i in cameras.indices) {
             if (i >= 4) break
             val camPos = cameras[i]
-            val aimBtn = Button.builder(Component.literal("Aim Cam #${i + 1}")) { button ->
+            
+            // Aim Camera Button
+            val aimBtn = Button.builder(Component.literal("Aim")) { button ->
                 PacketDistributor.sendToServer(AimCameraPayload(menu.blockPos, camPos))
-            }.bounds(leftPos + 186, topPos + yOffset + 14, 92, 16).build()
+            }.bounds(leftPos + 186, topPos + yOffset + 14, 52, 16).build()
             addRenderableWidget(aimBtn)
+
+            // Locate Camera Button
+            val locateBtn = Button.builder(Component.literal("Loc")) { button ->
+                PacketDistributor.sendToServer(LocateCameraPayload(menu.blockPos, camPos))
+                onClose()
+            }.bounds(leftPos + 240, topPos + yOffset + 14, 26, 16).build()
+            addRenderableWidget(locateBtn)
+
+            // Unlink Camera Button (renders as X)
+            val unlinkBtn = Button.builder(Component.literal("X")) { button ->
+                PacketDistributor.sendToServer(me.orange.crtangarine.network.UnlinkCameraPayload(menu.blockPos, camPos))
+            }.bounds(leftPos + 268, topPos + yOffset + 14, 12, 16).build()
+            addRenderableWidget(unlinkBtn)
+
             yOffset += 34
         }
     }
@@ -122,5 +139,19 @@ class CameraStationScreen(menu: CameraStationMenu, playerInv: Inventory, title: 
         guiGraphics.fill(x, y, x + 1, y + h, 0xFFFFFFFF.toInt())
         guiGraphics.fill(x, y + h - 1, x + w, y + h, 0xFF555555.toInt())
         guiGraphics.fill(x + w - 1, y, x + w, y + h, 0xFF555555.toInt())
+    }
+
+    override fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
+        if (nameEdit.isFocused) {
+            if (keyCode == 256) { // Escape key should still close the screen
+                this.onClose()
+                return true
+            }
+            if (nameEdit.keyPressed(keyCode, scanCode, modifiers)) {
+                return true
+            }
+            return true // consume keypress to prevent closing inventory (typing 'e')
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers)
     }
 }

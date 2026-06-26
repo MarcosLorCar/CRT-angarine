@@ -48,14 +48,14 @@ class CameraStationBlock(properties: Properties) : Block(properties), EntityBloc
                 tag.putInt("StationZ", pos.z)
                 stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag))
                 player.displayClientMessage(Component.literal("Keycard bound to Station at [${pos.x}, ${pos.y}, ${pos.z}]"), true)
-            }
-
-            // Open menu and write BlockPos
-            player.openMenu(SimpleMenuProvider(
-                { windowId, playerInv, _ -> CameraStationMenu(windowId, playerInv, pos) },
-                Component.literal("Camera Station")
-            )) { buf ->
-                buf.writeBlockPos(pos)
+            } else {
+                // Open menu and write BlockPos
+                player.openMenu(SimpleMenuProvider(
+                    { windowId, playerInv, _ -> CameraStationMenu(windowId, playerInv, pos) },
+                    Component.literal("Camera Station")
+                )) { buf ->
+                    buf.writeBlockPos(pos)
+                }
             }
         }
 

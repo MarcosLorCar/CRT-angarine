@@ -7,7 +7,7 @@ import net.neoforged.neoforge.event.server.ServerStoppingEvent
 object CameraServerEvents {
     @SubscribeEvent
     fun onServerStarting(event: ServerStartingEvent) {
-        CameraStreamingClient.start()
+        CameraStreamingClient.start(event.server)
     }
 
     @SubscribeEvent
