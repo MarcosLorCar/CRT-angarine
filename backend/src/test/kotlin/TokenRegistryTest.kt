@@ -2,8 +2,7 @@ package me.orange
 
 import java.io.File
 import kotlin.test.*
-import me.orange.crtangarine.shared.AuthTokenPacket
-import me.orange.crtangarine.shared.CryptoUtils
+import me.orange.crtangarine.shared.*
 
 
 class TokenRegistryTest {
@@ -68,7 +67,11 @@ class TokenRegistryTest {
         val uuid = "packet-player-uuid"
         val rawToken = "super-secret-token"
         val encryptedToken = CryptoUtils.encrypt(rawToken)
-        val packet = AuthTokenPacket(uuid, encryptedToken, emptyList())
+        val packet = AuthTokenPacket(
+            playerUuid = uuid,
+            encryptedToken = encryptedToken,
+            assignedStations = emptyList()
+        )
 
         TokenRegistry.registerFromPacket(packet)
 

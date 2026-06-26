@@ -6,9 +6,7 @@ import io.ktor.websocket.DefaultWebSocketSession
 import io.ktor.websocket.send
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
-import me.orange.crtangarine.shared.CameraData
-import me.orange.crtangarine.shared.StationInfo
-import me.orange.crtangarine.shared.CameraStreamCommand
+import me.orange.crtangarine.shared.*
 
 object CameraStreamRegistry {
     // Station position string -> StationInfo
@@ -23,11 +21,28 @@ object CameraStreamRegistry {
     // Active web client sessions (session -> cameraId being watched)
     val webClients = ConcurrentHashMap<DefaultWebSocketSession, String>()
 
+    // Active web client registry updates sessions (session -> playerUuid)
+    val webRegistrySessions = ConcurrentHashMap<DefaultWebSocketSession, String>()
+
     fun updateStations(newStations: List<StationInfo>) {
         val ownersToClear = newStations.map { it.ownerUuid }.toSet()
         stations.values.removeIf { it.ownerUuid in ownersToClear }
         for (station in newStations) {
             stations[station.pos] = station
+        }
+    }
+
+    suspend fun broadcastRegistryToWebClients(playerUuid: String) {
+        val userCameras = getCamerasForPlayer(playerUuid)
+        val jsonStr = Json.encodeToString(userCameras)
+        for ((session, uuid) in webRegistrySessions) {
+            if (uuid == playerUuid) {
+                try {
+                    session.send(jsonStr)
+                } catch (e: java.lang.Exception) {
+                    webRegistrySessions.remove(session)
+                }
+            }
         }
     }
 
@@ -61,7 +76,10 @@ object CameraStreamRegistry {
 
     suspend fun syncActiveCamerasToMod(session: DefaultWebSocketSession) {
         for (cameraId in activeStreamingCameras.keys) {
-            val command = CameraStreamCommand(cameraId, true)
+            val command = CameraStreamCommand(
+                cameraId = cameraId,
+                isActive = true
+            )
             val jsonStr = Json.encodeToString(command)
             try {
                 session.send(jsonStr)
@@ -89,7 +107,11 @@ object CameraStreamRegistry {
         }
         if (count == 1) {
             // Signal the mod to start streaming
-            sendCommandToMod(CameraStreamCommand(cameraId, true))
+            val command = CameraStreamCommand(
+                cameraId = cameraId,
+                isActive = true
+            )
+            sendCommandToMod(command)
         }
     }
 
@@ -100,7 +122,11 @@ object CameraStreamRegistry {
         }
         if (count == null || count <= 0) {
             // Signal the mod to stop streaming
-            sendCommandToMod(CameraStreamCommand(cameraId, false))
+            val command = CameraStreamCommand(
+                cameraId = cameraId,
+                isActive = false
+            )
+            sendCommandToMod(command)
         }
     }
 }

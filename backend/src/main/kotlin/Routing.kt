@@ -10,9 +10,8 @@ import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import me.orange.crtangarine.shared.CameraData
-import me.orange.crtangarine.shared.AuthTokenPacket
-
+import kotlinx.serialization.encodeToString
+import me.orange.crtangarine.shared.*
 
 @Serializable
 data class LoginRequest(val token: String)
@@ -53,7 +52,6 @@ fun Application.configureRouting() {
             }
         }
 
-        
         get("/api/cameras") {
             val token = call.request.headers["Authorization"] ?: call.request.queryParameters["token"]
             if (token == null || !TokenRegistry.validateToken(token)) {
@@ -66,7 +64,7 @@ fun Application.configureRouting() {
                 return@get
             }
             val userCameras = CameraStreamRegistry.getCamerasForPlayer(playerUuid)
-            call.respond(userCameras)
+            call.respondText(Json.encodeToString(userCameras), ContentType.Application.Json)
         }
 
         webSocket("/api/mod/stream") {
@@ -82,15 +80,18 @@ fun Application.configureRouting() {
                     if (frame is Frame.Text) {
                         val text = frame.readText()
                         try {
-                            val msg = Json.decodeFromString<me.orange.crtangarine.shared.ModMessage>(text)
+                            val msg = Json.decodeFromString<ModMessage>(text)
                             when (msg) {
-                                is me.orange.crtangarine.shared.RegistryUpdateMessage -> {
+                                is RegistryUpdateMessage -> {
                                     CameraStreamRegistry.updateStations(msg.data.stations)
+                                    for (station in msg.data.stations) {
+                                        CameraStreamRegistry.broadcastRegistryToWebClients(station.ownerUuid)
+                                    }
                                 }
-                                is me.orange.crtangarine.shared.FrustumPayloadMessage -> {
+                                is FrustumPayloadMessage -> {
                                     CameraStreamRegistry.forwardToWebClients(msg.data.cameraId, text)
                                 }
-                                is me.orange.crtangarine.shared.EntityStreamMessage -> {
+                                is EntityStreamMessage -> {
                                     CameraStreamRegistry.forwardToWebClients(msg.data.cameraId, text)
                                 }
                             }
@@ -125,6 +126,33 @@ fun Application.configureRouting() {
                 CameraStreamRegistry.webClients.remove(this)
                 CameraStreamRegistry.stopStreaming(cameraId)
                 application.environment.log.info("Web client unsubscribed from camera $cameraId")
+            }
+        }
+
+        webSocket("/api/webapp/registry") {
+            val token = call.request.queryParameters["token"]
+            if (token == null || !TokenRegistry.validateToken(token)) {
+                close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Unauthorized or missing parameters"))
+                return@webSocket
+            }
+
+            val playerUuid = TokenRegistry.getPlayerUuid(token)
+            if (playerUuid == null) {
+                close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Player not found"))
+                return@webSocket
+            }
+
+            CameraStreamRegistry.webRegistrySessions[this] = playerUuid
+            // Send initial camera list immediately upon connection
+            val userCameras = CameraStreamRegistry.getCamerasForPlayer(playerUuid)
+            send(Json.encodeToString(userCameras))
+
+            try {
+                for (frame in incoming) {
+                    // Keep connection open
+                }
+            } finally {
+                CameraStreamRegistry.webRegistrySessions.remove(this)
             }
         }
     }
