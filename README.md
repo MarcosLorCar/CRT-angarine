@@ -18,14 +18,14 @@ CRT-angarine/
 └── webapp/             # Vite + React + Three.js CRT surveillance matrix frontend
 ```
 
-### 1. [shared](file:///C:/Users/Marcos/Documents/Dev/CRT-angarine/shared) Module
+### 1. [Shared](shared) Module
 Contains shared data models annotated with `@Serializable` for communication between the Minecraft mod, backend server, and the webapp.
 * **Key Files:**
-  * [Packets.kt](file:///C:/Users/Marcos/Documents/Dev/CRT-angarine/shared/src/main/kotlin/me/orange/crtangarine/shared/Packets.kt): Sealed class hierarchy representing message envelopes, containing `AuthTokenPacket`, `TerrainFrustumPayload`, `EntityDeltaStream`, `CameraStreamCommand`, and the wrapper `ModMessage`.
-  * [CameraData.kt](file:///C:/Users/Marcos/Documents/Dev/CRT-angarine/shared/src/main/kotlin/me/orange/crtangarine/shared/CameraData.kt): Data transfer structures like `CameraData`, `CameraInfo`, `StationInfo`, and `CameraRegistryUpdate`.
-  * **Encryption Utility:** `CryptoUtils` uses a secure XOR-based encryption key (`"CRTangarineSecret"`) to encrypt/decrypt player credentials transitively.
+  * [Packets.kt](shared/src/main/kotlin/me/orange/crtangarine/shared/Packets.kt): Sealed class hierarchy representing message envelopes, containing `AuthTokenPacket`, `TerrainFrustumPayload`, `EntityDeltaStream`, `CameraStreamCommand`, and the wrapper `ModMessage`.
+  * [CameraData.kt](shared/src/main/kotlin/me/orange/crtangarine/shared/CameraData.kt): Data transfer structures like `CameraData`, `CameraInfo`, `StationInfo`, and `CameraRegistryUpdate`.
+* **Obfuscation Utility:** `CryptoUtils` uses a fast XOR-based cipher token to mask player credentials before writing to the local flat-file storage.
 
-### 2. [backend](file:///C:/Users/Marcos/Documents/Dev/CRT-angarine/backend) Module
+### 2. [Backend](backend) Module
 A Ktor Server powered by Netty that acts as the messaging broker and static file server.
 * **Network Port:** Runs on port `8080` (configured in `application.yaml`).
 * **Static Assets Server:** Serves compiled React assets from the `webapp/dist` folder using single-page application (SPA) fallback routing.
@@ -38,7 +38,7 @@ A Ktor Server powered by Netty that acts as the messaging broker and static file
   * `/api/webapp/view`: Connection endpoint for the web dashboard. Receives camera subscriptions and forwards live frustum payloads and entity streams.
 * **Storage:** Manages a flat-file JSON database (`auth_tokens.json`) via [TokenRegistry.kt](file:///C:/Users/Marcos/Documents/Dev/CRT-angarine/backend/src/main/kotlin/TokenRegistry.kt).
 
-### 3. [mod](file:///C:/Users/Marcos/Documents/Dev/CRT-angarine/mod) Module
+### 3. [Mod](mod) Module
 A Minecraft 1.21.1 NeoForge mod using Kotlin. Connects to the Ktor server as a Ktor client to stream data and register players.
 * **Core Registrations:**
   * **Blocks:** `Camera Block` (with rotation blockstate parameters) and `Camera Station Block` (holding owner UUID and station name) registered via [ModBlocks.kt](file:///C:/Users/Marcos/Documents/Dev/CRT-angarine/mod/src/main/kotlin/me/orange/crtangarine/block/ModBlocks.kt).
@@ -48,10 +48,9 @@ A Minecraft 1.21.1 NeoForge mod using Kotlin. Connects to the Ktor server as a K
   * **Camera Aiming Pipeline:** Fired from the Station UI. Temporarily possesses player camera view, binds rotation pitch/yaw values to camera blocks, and safely restores player control.
   * **Surveillance Frustum Cone Math:** Streams blocks and entities within a 70-degree frustum up to 32 blocks away *only* when the backend signals `isActive = true`. Managed client-side by [CameraStreamingClient.kt](file:///C:/Users/Marcos/Documents/Dev/CRT-angarine/mod/src/main/kotlin/me/orange/crtangarine/network/CameraStreamingClient.kt).
 
-### 4. [webapp](file:///C:/Users/Marcos/Documents/Dev/CRT-angarine/webapp) Module
+### 4. [Webapp](webapp) Module
 A React dashboard built using raw Three.js rendering techniques to display environment grids and track entities in a retro neon/CRT scanline shader interface.
-* **Performance:** Utilizes `THREE.InstancedMesh` for rendering static blocks without causing React re-render lag.
-* **Shading Pipeline:** A post-processing `EffectComposer` pipeline applying CRT scanlines, phosphorus curves, chromatic aberration, and screen-flicker.
+* **Production Deployment:** This module compiles into a highly optimized, single-page application static bundle via Vite, which is automatically ingested and served by the `backend` module.
 
 ---
 
@@ -109,7 +108,7 @@ Dynamic entity coordinates are tracked and color-coded within the Three.js viewp
 
 ---
 
-## ⚡ Development & Orchestration Commands
+## Development & Orchestration Commands
 
 ### 1. Build the Complete Project
 Building the backend automatically triggers `buildWebapp` task, compiles Vite production assets, and embeds them inside the Ktor server jar.
@@ -129,10 +128,12 @@ Launches a client-side Minecraft environment in dev mode with the NeoForge mod i
 ./gradlew :mod:runClient
 ```
 
-### 4. Run the Vite Webapp in Dev Mode
-For rapid web UI iterations (independent of Ktor static serving). Run from the `/webapp` directory.
-```powershell
+### 4. Run Frontend in Hot-Reload Dev Mode (Optional)
+For rapid UI/CSS styling iterations without constantly rebuilding the Ktor fat JAR.
+*Note: Ensure your Vite config handles API proxying to `localhost:8080` to prevent CORS issues.*
+```bash
 cd webapp
+npm install
 npm run dev
 ```
 
@@ -140,6 +141,6 @@ npm run dev
 
 ## Technical Highlights & Guidelines
 
-* **Instanced Rendering:** All blocks parsed in [Viewport.tsx](file:///C:/Users/Marcos/Documents/Dev/CRT-angarine/webapp/src/components/Viewport.tsx) are rendered using a single `THREE.InstancedMesh` with translation matrices. This keeps GPU draw calls extremely low, avoiding CPU overhead on state updates.
-* **On-Demand Performance:** The mod only runs heavy coordinate checking and frustum computations for cameras currently being watched. This preserves server tickrate (TPS).
+* **Instanced Rendering:** All blocks parsed in [Viewport.tsx](webapp/src/components/Viewport.tsx) are rendered using a single `THREE.InstancedMesh` with translation matrices. This keeps GPU draw calls extremely low, avoiding CPU overhead on state updates.
+* **On-Demand Performance:** The mod only runs heavy coordinate checking and frustum computations for cameras currently being watched. This preserves the server tickrate (TPS).
 * **NBT Profile Binding:** The keycard burns physical player UUID metadata into station tiles, preventing unauthorised players from tampering with security terminals.

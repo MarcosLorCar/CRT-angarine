@@ -28,50 +28,62 @@ class SecurityKeycardItem(properties: Properties) : Item(properties) {
 
     override fun useOn(context: UseOnContext): InteractionResult {
         val level = context.level
-        val player = context.player ?: return InteractionResult.PASS
         val pos = context.clickedPos
         val blockState = level.getBlockState(pos)
 
-        if (blockState.`is`(me.orange.crtangarine.block.ModBlocks.CAMERA_STATION_BLOCK)) {
-            val stack = context.itemInHand
-            val customData = stack.get(DataComponents.CUSTOM_DATA) ?: CustomData.EMPTY
-            val tag = customData.copyTag()
-            val ownerUuid = tag.getString("OwnerUUID")
-
-            if (ownerUuid.isEmpty()) {
-                if (!level.isClientSide) {
-                    player.displayClientMessage(Component.literal("Error: You must activate this keycard by right-clicking in the air first!"), true)
-                }
-                return InteractionResult.FAIL
-            }
-
-            if (ownerUuid != player.uuid.toString()) {
-                if (!level.isClientSide) {
-                    player.displayClientMessage(Component.literal("Access Denied: You do not own this keycard!"), true)
-                }
-                return InteractionResult.FAIL
-            }
-
-            if (player.isSecondaryUseActive) {
-                if (!level.isClientSide) {
-                    val blockEntity = level.getBlockEntity(pos) as? me.orange.crtangarine.block.CameraStationBlockEntity
-                    if (blockEntity != null) {
-                        val currentOwner = blockEntity.ownerUuid
-                        if (currentOwner.isNotEmpty() && currentOwner != player.uuid.toString()) {
-                            player.displayClientMessage(Component.literal("Access Denied: You do not own this station!"), true)
-                            return InteractionResult.FAIL
-                        }
-                        
-                        tag.putInt("StationX", pos.x)
-                        tag.putInt("StationY", pos.y)
-                        tag.putInt("StationZ", pos.z)
-                        stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag))
-                        player.displayClientMessage(Component.literal("Keycard bound to Station at [${pos.x}, ${pos.y}, ${pos.z}]"), true)
-                    }
-                }
-                return InteractionResult.sidedSuccess(level.isClientSide)
-            }
+        // 1. Quick exit if it's not our block
+        if (!blockState.`is`(me.orange.crtangarine.block.ModBlocks.CAMERA_STATION_BLOCK)) {
+            return InteractionResult.PASS
         }
+
+        val player = context.player ?: return InteractionResult.PASS
+        val stack = context.itemInHand
+        val customData = stack.get(DataComponents.CUSTOM_DATA) ?: CustomData.EMPTY
+        val tag = customData.copyTag()
+        val ownerUuid = tag.getString("OwnerUUID")
+
+        // 2. Validate Card Activation
+        if (ownerUuid.isEmpty()) {
+            if (!level.isClientSide) {
+                player.displayClientMessage(Component.literal("Error: You must activate this keycard by right-clicking in the air first!"), true)
+            }
+            return InteractionResult.FAIL
+        }
+
+        // 3. Validate Card Ownership
+        if (ownerUuid != player.uuid.toString()) {
+            if (!level.isClientSide) {
+                player.displayClientMessage(Component.literal("Access Denied: You do not own this keycard!"), true)
+            }
+            return InteractionResult.FAIL
+        }
+
+        // 4. Handle Sneak-Binding
+        if (player.isSecondaryUseActive) {
+            if (!level.isClientSide) {
+                val blockEntity = level.getBlockEntity(pos) as? me.orange.crtangarine.block.CameraStationBlockEntity
+                if (blockEntity != null) {
+                    val currentOwner = blockEntity.ownerUuid
+
+                    // Validate Station Ownership
+                    if (currentOwner.isNotEmpty() && currentOwner != player.uuid.toString()) {
+                        player.displayClientMessage(Component.literal("Access Denied: You do not own this station!"), true)
+                        return InteractionResult.FAIL
+                    }
+
+                    // Bind coordinates to the card
+                    tag.putInt("StationX", pos.x)
+                    tag.putInt("StationY", pos.y)
+                    tag.putInt("StationZ", pos.z)
+                    stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag))
+                    player.displayClientMessage(Component.literal("Keycard bound to Station at [${pos.x}, ${pos.y}, ${pos.z}]"), true)
+                }
+            }
+            return InteractionResult.sidedSuccess(level.isClientSide)
+        }
+
+        // If they right-clicked the station with a valid card but AREN'T sneaking,
+        // let it PASS so the block's useWithoutItem can trigger and open the GUI
         return InteractionResult.PASS
     }
 

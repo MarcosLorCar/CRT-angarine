@@ -10,12 +10,15 @@
     },
     "G": {
       "item": "minecraft:glass_pane"
+    },
+    "D": {
+      "item": "minecraft:diamond"
     }
   },
   "pattern": [
     "III",
     "RGR",
-    "III"
+    "IDI"
   ],
   "result": {
     "count": 1,

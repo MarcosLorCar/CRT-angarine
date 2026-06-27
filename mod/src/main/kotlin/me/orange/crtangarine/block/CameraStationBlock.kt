@@ -61,26 +61,8 @@ class CameraStationBlock(properties: Properties) : Block(properties), EntityBloc
         val blockEntity = level.getBlockEntity(pos) as? CameraStationBlockEntity
         if (blockEntity != null) {
             val currentOwner = blockEntity.ownerUuid
-            val stack = player.getItemInHand(InteractionHand.MAIN_HAND)
 
-            // Sneaking (Shift-clicking) with a Keycard binds the station to the keycard
-            if (player.isSecondaryUseActive && stack.item is SecurityKeycardItem) {
-                if (currentOwner.isNotEmpty() && currentOwner != player.uuid.toString()) {
-                    player.displayClientMessage(Component.literal("Access Denied: You do not own this station!"), true)
-                    return InteractionResult.FAIL
-                }
-                
-                val customData = stack.get(DataComponents.CUSTOM_DATA) ?: CustomData.EMPTY
-                val tag = customData.copyTag()
-                tag.putInt("StationX", pos.x)
-                tag.putInt("StationY", pos.y)
-                tag.putInt("StationZ", pos.z)
-                stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag))
-                player.displayClientMessage(Component.literal("Keycard bound to Station at [${pos.x}, ${pos.y}, ${pos.z}]"), true)
-                return InteractionResult.SUCCESS
-            }
-
-            // Normal right-click interaction opens the UI (if owned by the player or ownerless)
+            // Prevent unauthorized players from opening the GUI
             if (currentOwner.isNotEmpty() && currentOwner != player.uuid.toString()) {
                 player.displayClientMessage(Component.literal("Access Denied: You do not own this station!"), true)
                 return InteractionResult.FAIL
@@ -93,6 +75,7 @@ class CameraStationBlock(properties: Properties) : Block(properties), EntityBloc
             )) { buf ->
                 buf.writeBlockPos(pos)
             }
+            return InteractionResult.SUCCESS
         }
 
         return InteractionResult.CONSUME
