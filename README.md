@@ -6,9 +6,9 @@ Built with a Kotlin multi-project architecture (Ktor, WebSockets, NeoForge) and 
 
 ### Version Compatibility
 
-| Mod Version | Minecraft Version | Loader / Platform | Java Version | Status |
-| :--- | :--- | :--- | :--- | :--- |
-| **`1.0.x`** | `1.21.1` | NeoForge (21.1.234+) | JDK 21 | Active / Stable |
+| Mod Version | Minecraft Version | Loader / Platform    | Java Version | Status          |
+|:------------|:------------------|:---------------------|:-------------|:----------------|
+| **`1.0.x`** | `1.21.1`          | NeoForge (21.1.234+) | JDK 21       | Active / Stable |
 
 ## Quick Start Guide
 
