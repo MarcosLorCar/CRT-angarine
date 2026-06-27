@@ -98,9 +98,7 @@ jobs:
             * **Mod Loader:** NeoForge
             * **Java Version:** 21
           files: |
-            backend/build/libs/backend-*.jar
-            !backend/build/libs/backend-*-plain.jar
-            mod/build/libs/crtangarine-mc*.jar
+            mod/build/libs/crtangarine-mod-*.jar
             crtangarine-webserver-v*.zip
           draft: false
           prerelease: false
