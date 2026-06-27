@@ -9,7 +9,7 @@ class TokenRegistryTest {
 
     @BeforeTest
     fun setUp() {
-        val file = File("auth_tokens.json")
+        val file = File("data/auth_tokens.json")
         if (file.exists()) {
             file.delete()
         }
@@ -18,7 +18,7 @@ class TokenRegistryTest {
 
     @AfterTest
     fun tearDown() {
-        val file = File("auth_tokens.json")
+        val file = File("data/auth_tokens.json")
         if (file.exists()) {
             file.delete()
         }

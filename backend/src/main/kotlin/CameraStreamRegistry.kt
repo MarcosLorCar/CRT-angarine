@@ -30,7 +30,7 @@ object CameraStreamRegistry {
 
     private fun getStationsForWorld(worldId: String): ConcurrentHashMap<String, StationInfo> {
         return stationsByWorld.computeIfAbsent(worldId) { id ->
-            val file = File("stations_$id.json")
+            val file = File("data/stations_$id.json")
             val map = ConcurrentHashMap<String, StationInfo>()
             try {
                 if (file.exists()) {
@@ -49,8 +49,9 @@ object CameraStreamRegistry {
 
     private fun saveWorld(worldId: String) {
         val map = stationsByWorld[worldId] ?: return
-        val file = File("stations_$worldId.json")
+        val file = File("data/stations_$worldId.json")
         try {
+            file.parentFile?.mkdirs()
             val list = map.values.toList()
             val content = Json.encodeToString(list)
             file.writeText(content)

@@ -13,7 +13,7 @@ import kotlinx.serialization.Serializable
 data class TokenMetadata(val playerUuid: String, val worldId: String)
 
 object TokenRegistry {
-    private val file = File("auth_tokens.json")
+    private val file = File("data/auth_tokens.json")
     private val tokenMetadataMap = ConcurrentHashMap<String, TokenMetadata>()
 
     init {
@@ -37,6 +37,7 @@ object TokenRegistry {
     @Synchronized
     private fun save() {
         try {
+            file.parentFile?.mkdirs()
             val map = tokenMetadataMap.toMap()
             val content = Json.encodeToString(map)
             file.writeText(content)

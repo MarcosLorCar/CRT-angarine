@@ -30,6 +30,10 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Runtime databases and data folders
+backend/data/
+data/
+
 # Environment Variables (Crucial for storing server keys/tokens securely!)
 .env
 .env.local
