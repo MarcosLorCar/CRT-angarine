@@ -85,11 +85,8 @@ object ServerPacketHandler {
                 val originalYaw = player.yRot
                 val originalFlying = player.abilities.flying
 
-                // Set game mode to SPECTATOR to enable proper camera movement and hide player model desyncs
-                player.setGameMode(GameType.SPECTATOR)
-
-                // Teleport spectator player to the camera block center and rotate to look in camera facing direction
-                player.teleportTo(level, pos.x + 0.5, pos.y + 0.5 - player.eyeHeight, pos.z + 0.5, yaw, pitch)
+                // Align player's look direction with the initial camera direction at their current console position
+                player.teleportTo(level, originalPos.x, originalPos.y, originalPos.z, yaw, pitch)
 
                 // Save session
                 CameraAimManager.sessions[player.uuid] = AimSession(pos, originalGameMode, originalPos, originalPitch, originalYaw, originalFlying)
