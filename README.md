@@ -25,12 +25,15 @@ The webserver runs the backend database and serves the CRT browser dashboard.
    *(Note: This webserver requires Java 21. If Java is not detected, the startup script will open a link to download it.)*
 4. Open your web browser and navigate to `localhost:8080` (or the IP address of the server running the webserver) to access the surveillance dashboard.
 
-### 2. Minecraft Client Setup
+### 2. Minecraft Client/Server Setup
 1. Download the latest `crtangarine-mod-*.jar` file from the Releases page.
-2. Place the JAR file inside your Minecraft client's `mods` folder.
-3. Launch Minecraft 1.21.1 using the NeoForge mod loader.
-4. Once in-game, place down a Camera Station and use a Security Keycard to configure your camera feed and link it to the webserver.
-5. (Optional) If the webserver is running on a different computer, open the `config/crtangarine-common.toml` file in your Minecraft directory and change the `backendUri` property to the IP address and port of that computer (e.g. `192.168.1.100:8080`).
+2. Place the JAR file inside your Minecraft client or server `mods` folder.
+3. **Required Dependency:** Because the mod is written in Kotlin, download the **Kotlin for Forge** mod (version `5.3.0` or higher for NeoForge) and place it in the same `mods` folder.
+   * You can download it from [Modrinth](https://modrinth.com/mod/kotlin-for-forge) or [CurseForge](https://www.curseforge.com/minecraft/mc-mods/kotlin-for-forge).
+   * *Note on Versions:* Although `5.3.0` is the minimum version compiled against, it was originally published for Minecraft 1.21. For Minecraft 1.21.1, you can use version `5.4.0` or newer (which are explicitly tagged for 1.21.1 on Modrinth/CurseForge). Any version `5.3.0` or higher will satisfy this dependency.
+4. Launch Minecraft 1.21.1 using the NeoForge mod loader.
+5. Once in-game, place down a Camera Station and use a Security Keycard to configure your camera feed and link it to the webserver.
+6. (Optional) If the webserver is running on a different computer, open the `config/crtangarine-common.toml` file in your Minecraft directory and change the `backendUri` property to the IP address and port of that computer (e.g. `192.168.1.100:8080`).
 
 ---
 
