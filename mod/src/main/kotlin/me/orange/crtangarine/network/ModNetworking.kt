@@ -55,5 +55,12 @@ object ModNetworking {
             RenameCameraPayload.STREAM_CODEC,
             ServerPacketHandler::handleRenameCamera
         )
+
+        // Open Keycard Screen (Clientbound)
+        registrar.playToClient(
+            OpenKeycardScreenPayload.TYPE,
+            OpenKeycardScreenPayload.STREAM_CODEC,
+            ClientPacketHandler::handleOpenKeycardScreen
+        )
     }
 }

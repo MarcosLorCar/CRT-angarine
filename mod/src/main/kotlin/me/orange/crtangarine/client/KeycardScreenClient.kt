@@ -31,15 +31,14 @@ class KeycardScreen(private val token: String) : Screen(Component.literal("Secur
         addRenderableWidget(tokenWidget)
 
         // Copy button on the left
-        val copyButton = Button.builder(Component.literal("Copy Token")) { button ->
+        val copyButton = Button.builder(Component.literal("Copy")) { button ->
             minecraft?.keyboardHandler?.clipboard = token
             minecraft?.player?.displayClientMessage(Component.literal("Token copied to clipboard!"), true)
-            onClose()
-        }.bounds(width / 2 - 115, height / 2 + 10, 110, 20).build()
+        }.bounds(width / 2 - 125, height / 2 + 10, 80, 20).build()
         addRenderableWidget(copyButton)
 
-        // Open Link button on the right
-        val openLinkButton = Button.builder(Component.literal("Open Link")) { button ->
+        // Open Link button in the middle
+        val openLinkButton = Button.builder(Component.literal("Open Site")) { button ->
             val backendUri = ModConfiguration.CONFIG.backendUri.get()
             val urlString = if (backendUri.startsWith("http://") || backendUri.startsWith("https://")) {
                 "$backendUri/?token=$token"
@@ -51,9 +50,14 @@ class KeycardScreen(private val token: String) : Screen(Component.literal("Secur
             } catch (e: Exception) {
                 minecraft?.player?.displayClientMessage(Component.literal("Could not open link: ${e.message}"), true)
             }
-            onClose()
-        }.bounds(width / 2 + 5, height / 2 + 10, 110, 20).build()
+        }.bounds(width / 2 - 40, height / 2 + 10, 80, 20).build()
         addRenderableWidget(openLinkButton)
+
+        // Close button on the right
+        val closeButton = Button.builder(Component.literal("Close")) { button ->
+            onClose()
+        }.bounds(width / 2 + 45, height / 2 + 10, 80, 20).build()
+        addRenderableWidget(closeButton)
     }
 
     override fun render(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {

@@ -22,13 +22,18 @@ function App() {
   const [isLoggingIn, setIsLoggingIn] = useState(false)
   
   const [cameras, setCameras] = useState<CameraData[]>([])
-  const [activeCameraId, setActiveCameraId] = useState<string | null>(null)
+  const [activeCameraId, setActiveCameraId] = useState<string | null>(() => {
+    return localStorage.getItem('active_camera_id');
+  })
   
-
-
   const activeCameraIdRef = useRef(activeCameraId)
   useEffect(() => {
-    activeCameraIdRef.current = activeCameraId
+    if (activeCameraId) {
+      localStorage.setItem('active_camera_id', activeCameraId);
+    } else {
+      localStorage.removeItem('active_camera_id');
+    }
+    activeCameraIdRef.current = activeCameraId;
   }, [activeCameraId])
 
   // Synchronize registered cameras via WebSocket (no polling)
@@ -77,7 +82,13 @@ function App() {
       };
 
       ws.onclose = (event) => {
-        console.log('Registry websocket closed. Reconnecting in 3s...', event.reason);
+        console.log('Registry websocket closed. Reconnecting in 3s...', event.code, event.reason);
+        // Code 1008 is standard WebSocket code for VIOLATED_POLICY (Unauthorized or missing parameters)
+        if (event.code === 1008) {
+          console.warn("Registry authorization rejected. Logging out.");
+          handleLogout();
+          return;
+        }
         if (active) {
           reconnectTimeout = setTimeout(connect, 3000);
         }

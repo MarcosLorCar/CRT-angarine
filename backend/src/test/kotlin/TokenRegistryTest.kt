@@ -29,7 +29,7 @@ class TokenRegistryTest {
         val uuid = "player-uuid-123"
         val token = "secret-token-xyz"
 
-        TokenRegistry.registerToken(uuid, token)
+        TokenRegistry.registerToken(uuid, token, "global")
 
         assertEquals(token, TokenRegistry.getToken(uuid))
         assertEquals(uuid, TokenRegistry.getPlayerUuid(token))
@@ -41,7 +41,7 @@ class TokenRegistryTest {
         val uuid = "persist-uuid"
         val token = "persist-token"
 
-        TokenRegistry.registerToken(uuid, token)
+        TokenRegistry.registerToken(uuid, token, "global")
 
         // Reload from file
         TokenRegistry.load()
@@ -54,7 +54,7 @@ class TokenRegistryTest {
         val uuid = "remove-uuid"
         val token = "remove-token"
 
-        TokenRegistry.registerToken(uuid, token)
+        TokenRegistry.registerToken(uuid, token, "global")
         assertTrue(TokenRegistry.validateToken(token))
 
         TokenRegistry.removeToken(uuid)
@@ -70,7 +70,8 @@ class TokenRegistryTest {
         val packet = AuthTokenPacket(
             playerUuid = uuid,
             encryptedToken = encryptedToken,
-            assignedStations = emptyList()
+            assignedStations = emptyList(),
+            worldId = "global"
         )
 
         TokenRegistry.registerFromPacket(packet)
@@ -79,4 +80,3 @@ class TokenRegistryTest {
         assertTrue(TokenRegistry.validateToken(rawToken))
     }
 }
-

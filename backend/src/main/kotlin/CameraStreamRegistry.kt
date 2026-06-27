@@ -9,69 +9,71 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
 import me.orange.crtangarine.shared.*
 
+data class WebClientSubscription(val cameraId: String, val worldId: String)
+data class WebRegistrySubscription(val playerUuid: String, val worldId: String)
+
 object CameraStreamRegistry {
-    private val file = File("stations.json")
+    // worldId -> (stationPos -> StationInfo)
+    val stationsByWorld = ConcurrentHashMap<String, ConcurrentHashMap<String, StationInfo>>()
 
-    // Station position string -> StationInfo
-    val stations = ConcurrentHashMap<String, StationInfo>()
+    // Set of active streaming cameras (worldId/cameraId -> count of web clients watching it)
+    val activeStreamingCameras = ConcurrentHashMap<String, Int>()
 
-    init {
-        load()
-    }
+    // Active mod sessions (session -> worldId)
+    val modSessions = ConcurrentHashMap<DefaultWebSocketSession, String>()
 
-    @Synchronized
-    fun load() {
-        try {
-            if (file.exists()) {
-                val content = file.readText()
-                val list = Json.decodeFromString<List<StationInfo>>(content)
-                stations.clear()
-                for (station in list) {
-                    stations[station.pos] = station
+    // Active web client sessions (session -> WebClientSubscription)
+    val webClients = ConcurrentHashMap<DefaultWebSocketSession, WebClientSubscription>()
+
+    // Active web client registry updates sessions (session -> WebRegistrySubscription)
+    val webRegistrySessions = ConcurrentHashMap<DefaultWebSocketSession, WebRegistrySubscription>()
+
+    private fun getStationsForWorld(worldId: String): ConcurrentHashMap<String, StationInfo> {
+        return stationsByWorld.computeIfAbsent(worldId) { id ->
+            val file = File("stations_$id.json")
+            val map = ConcurrentHashMap<String, StationInfo>()
+            try {
+                if (file.exists()) {
+                    val content = file.readText()
+                    val list = Json.decodeFromString<List<StationInfo>>(content)
+                    for (station in list) {
+                        map[station.pos] = station
+                    }
                 }
+            } catch (e: Exception) {
+                System.err.println("Error loading stations_$id.json: ${e.message}")
             }
-        } catch (e: Exception) {
-            System.err.println("Error loading stations.json: ${e.message}")
+            map
         }
     }
 
-    @Synchronized
-    private fun save() {
+    private fun saveWorld(worldId: String) {
+        val map = stationsByWorld[worldId] ?: return
+        val file = File("stations_$worldId.json")
         try {
-            val list = stations.values.toList()
+            val list = map.values.toList()
             val content = Json.encodeToString(list)
             file.writeText(content)
         } catch (e: Exception) {
-            System.err.println("Error saving stations.json: ${e.message}")
+            System.err.println("Error saving stations_$worldId.json: ${e.message}")
         }
     }
 
-    // Set of active streaming cameras (cameraId -> count of web clients watching it)
-    val activeStreamingCameras = ConcurrentHashMap<String, Int>()
-
-    // Active mod sessions
-    val modSessions = CopyOnWriteArrayList<DefaultWebSocketSession>()
-
-    // Active web client sessions (session -> cameraId being watched)
-    val webClients = ConcurrentHashMap<DefaultWebSocketSession, String>()
-
-    // Active web client registry updates sessions (session -> playerUuid)
-    val webRegistrySessions = ConcurrentHashMap<DefaultWebSocketSession, String>()
-
-    fun updateStations(newStations: List<StationInfo>) {
+    fun updateStations(newStations: List<StationInfo>, worldId: String) {
+        val worldMap = getStationsForWorld(worldId)
         val ownersToClear = newStations.map { it.ownerUuid }.toSet()
-        stations.values.removeIf { it.ownerUuid in ownersToClear }
+        worldMap.values.removeIf { it.ownerUuid in ownersToClear }
         for (station in newStations) {
-            stations[station.pos] = station
+            worldMap[station.pos] = station
         }
-        save()
+        saveWorld(worldId)
     }
 
-    suspend fun broadcastRegistryToWebClients(playerUuid: String) {
-        val userCameras = getCamerasForPlayer(playerUuid)
+    suspend fun broadcastRegistryToWebClients(playerUuid: String, worldId: String) {
+        val userCameras = getCamerasForPlayer(playerUuid, worldId)
         val jsonStr = Json.encodeToString(userCameras)
-        for ((session, uuid) in webRegistrySessions) {
-            if (uuid == playerUuid) {
+        for ((session, sub) in webRegistrySessions) {
+            if (sub.playerUuid == playerUuid && sub.worldId == worldId) {
                 try {
                     session.send(jsonStr)
                 } catch (e: java.lang.Exception) {
@@ -81,8 +83,9 @@ object CameraStreamRegistry {
         }
     }
 
-    fun getCamerasForPlayer(playerUuid: String): List<CameraData> {
-        return stations.values
+    fun getCamerasForPlayer(playerUuid: String, worldId: String): List<CameraData> {
+        val worldMap = getStationsForWorld(worldId)
+        return worldMap.values
             .filter { it.ownerUuid == playerUuid }
             .flatMap { station ->
                 station.cameras.map { cam ->
@@ -99,35 +102,41 @@ object CameraStreamRegistry {
             }
     }
 
-    suspend fun sendCommandToMod(command: CameraStreamCommand) {
+    suspend fun sendCommandToMod(command: CameraStreamCommand, worldId: String) {
         val jsonStr = Json.encodeToString(command)
-        for (session in modSessions) {
-            try {
-                session.send(jsonStr)
-            } catch (e: Exception) {
-                modSessions.remove(session)
+        for ((session, id) in modSessions) {
+            if (id == worldId) {
+                try {
+                    session.send(jsonStr)
+                } catch (e: Exception) {
+                    modSessions.remove(session)
+                }
             }
         }
     }
 
-    suspend fun syncActiveCamerasToMod(session: DefaultWebSocketSession) {
-        for (cameraId in activeStreamingCameras.keys) {
-            val command = CameraStreamCommand(
-                cameraId = cameraId,
-                isActive = true
-            )
-            val jsonStr = Json.encodeToString(command)
-            try {
-                session.send(jsonStr)
-            } catch (e: Exception) {
-                // ignore
+    suspend fun syncActiveCamerasToMod(session: DefaultWebSocketSession, worldId: String) {
+        val prefix = "$worldId/"
+        for (key in activeStreamingCameras.keys) {
+            if (key.startsWith(prefix)) {
+                val cameraId = key.substring(prefix.length)
+                val command = CameraStreamCommand(
+                    cameraId = cameraId,
+                    isActive = true
+                )
+                val jsonStr = Json.encodeToString(command)
+                try {
+                    session.send(jsonStr)
+                } catch (e: Exception) {
+                    // ignore
+                  }
             }
         }
     }
 
-    suspend fun forwardToWebClients(cameraId: String, text: String) {
-        for ((session, id) in webClients) {
-            if (id == cameraId) {
+    suspend fun forwardToWebClients(cameraId: String, worldId: String, text: String) {
+        for ((session, sub) in webClients) {
+            if (sub.cameraId == cameraId && sub.worldId == worldId) {
                 try {
                     session.send(text)
                 } catch (e: Exception) {
@@ -137,8 +146,9 @@ object CameraStreamRegistry {
         }
     }
 
-    suspend fun startStreaming(cameraId: String) {
-        val count = activeStreamingCameras.compute(cameraId) { _, current ->
+    suspend fun startStreaming(cameraId: String, worldId: String) {
+        val key = "$worldId/$cameraId"
+        val count = activeStreamingCameras.compute(key) { _, current ->
             (current ?: 0) + 1
         }
         if (count == 1) {
@@ -147,12 +157,13 @@ object CameraStreamRegistry {
                 cameraId = cameraId,
                 isActive = true
             )
-            sendCommandToMod(command)
+            sendCommandToMod(command, worldId)
         }
     }
 
-    suspend fun stopStreaming(cameraId: String) {
-        val count = activeStreamingCameras.compute(cameraId) { _, current ->
+    suspend fun stopStreaming(cameraId: String, worldId: String) {
+        val key = "$worldId/$cameraId"
+        val count = activeStreamingCameras.compute(key) { _, current ->
             val next = (current ?: 0) - 1
             if (next <= 0) null else next
         }
@@ -162,7 +173,7 @@ object CameraStreamRegistry {
                 cameraId = cameraId,
                 isActive = false
             )
-            sendCommandToMod(command)
+            sendCommandToMod(command, worldId)
         }
     }
 }

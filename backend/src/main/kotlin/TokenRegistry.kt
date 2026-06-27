@@ -7,11 +7,14 @@ import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import me.orange.crtangarine.shared.AuthTokenPacket
 import me.orange.crtangarine.shared.CryptoUtils
+import kotlinx.serialization.Serializable
 
+@Serializable
+data class TokenMetadata(val playerUuid: String, val worldId: String)
 
 object TokenRegistry {
     private val file = File("auth_tokens.json")
-    private val tokens = ConcurrentHashMap<String, String>()
+    private val tokenMetadataMap = ConcurrentHashMap<String, TokenMetadata>()
 
     init {
         load()
@@ -22,9 +25,9 @@ object TokenRegistry {
         try {
             if (file.exists()) {
                 val content = file.readText()
-                val map = Json.decodeFromString<Map<String, String>>(content)
-                tokens.clear()
-                tokens.putAll(map)
+                val map = Json.decodeFromString<Map<String, TokenMetadata>>(content)
+                tokenMetadataMap.clear()
+                tokenMetadataMap.putAll(map)
             }
         } catch (e: Exception) {
             System.err.println("Error loading auth_tokens.json: ${e.message}")
@@ -34,7 +37,7 @@ object TokenRegistry {
     @Synchronized
     private fun save() {
         try {
-            val map = tokens.toMap()
+            val map = tokenMetadataMap.toMap()
             val content = Json.encodeToString(map)
             file.writeText(content)
         } catch (e: Exception) {
@@ -42,37 +45,40 @@ object TokenRegistry {
         }
     }
 
-    fun registerToken(playerUuid: String, token: String) {
-        tokens[playerUuid] = token
+    fun registerToken(playerUuid: String, token: String, worldId: String) {
+        tokenMetadataMap[token] = TokenMetadata(playerUuid, worldId)
         save()
     }
 
     fun registerFromPacket(packet: AuthTokenPacket) {
         val decryptedToken = CryptoUtils.decrypt(packet.encryptedToken)
         if (decryptedToken.isNotEmpty()) {
-            registerToken(packet.playerUuid, decryptedToken)
+            registerToken(packet.playerUuid, decryptedToken, packet.worldId)
         }
     }
 
-
     fun getToken(playerUuid: String): String? {
-        return tokens[playerUuid]
+        return tokenMetadataMap.entries.firstOrNull { it.value.playerUuid == playerUuid }?.key
     }
 
     fun getPlayerUuid(token: String): String? {
-        return tokens.entries.firstOrNull { it.value == token }?.key
+        return tokenMetadataMap[token]?.playerUuid
+    }
+
+    fun getWorldId(token: String): String? {
+        return tokenMetadataMap[token]?.worldId
     }
 
     fun removeToken(playerUuid: String) {
-        tokens.remove(playerUuid)
+        tokenMetadataMap.entries.removeIf { it.value.playerUuid == playerUuid }
         save()
     }
 
     fun validateToken(token: String): Boolean {
-        return tokens.values.contains(token)
+        return tokenMetadataMap.containsKey(token)
     }
 
-    fun getAllTokens(): Map<String, String> {
-        return tokens.toMap()
+    fun getAllTokens(): Map<String, TokenMetadata> {
+        return tokenMetadataMap.toMap()
     }
 }

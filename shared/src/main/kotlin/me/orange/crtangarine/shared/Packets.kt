@@ -31,7 +31,8 @@ object CryptoUtils {
 data class AuthTokenPacket(
     val playerUuid: String,
     val encryptedToken: String,
-    val assignedStations: List<String>
+    val assignedStations: List<String>,
+    val worldId: String = "global"
 )
 
 @Serializable

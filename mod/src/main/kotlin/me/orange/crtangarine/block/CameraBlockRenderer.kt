@@ -47,11 +47,16 @@ class CameraBlockRenderer(context: BlockEntityRendererProvider.Context) : BlockE
         val bodyBaked = manager.getModel(bodyModel)
 
         // 1. Render the static Baseplate
-        blockRenderer.modelRenderer.tesselateBlock(
-            level, baseplateBaked, state, pos, poseStack,
+        blockRenderer.modelRenderer.renderModel(
+            poseStack.last(),
             bufferSource.getBuffer(RenderType.cutout()),
-            false, level.random, 42L, packedOverlay,
-            ModelData.EMPTY, RenderType.cutout()
+            state,
+            baseplateBaked,
+            1.0f, 1.0f, 1.0f,
+            packedLight,
+            packedOverlay,
+            ModelData.EMPTY,
+            RenderType.cutout()
         )
 
         // 2. Isolate transformations for the moving body
@@ -69,11 +74,16 @@ class CameraBlockRenderer(context: BlockEntityRendererProvider.Context) : BlockE
         poseStack.translate(-0.5, -0.5, -0.5)
 
         // 5. Render the Camera Body JSON at the rotated positions
-        blockRenderer.modelRenderer.tesselateBlock(
-            level, bodyBaked, state, pos, poseStack,
+        blockRenderer.modelRenderer.renderModel(
+            poseStack.last(),
             bufferSource.getBuffer(RenderType.cutout()),
-            false, level.random, 42L, packedOverlay,
-            ModelData.EMPTY, RenderType.cutout()
+            state,
+            bodyBaked,
+            1.0f, 1.0f, 1.0f,
+            packedLight,
+            packedOverlay,
+            ModelData.EMPTY,
+            RenderType.cutout()
         )
 
         poseStack.popPose()

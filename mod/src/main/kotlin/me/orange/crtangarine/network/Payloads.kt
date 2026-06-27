@@ -129,3 +129,14 @@ data class RenameCameraPayload(val stationPos: BlockPos, val cameraPos: BlockPos
         )
     }
 }
+
+data class OpenKeycardScreenPayload(val token: String) : CustomPacketPayload {
+    override fun type(): CustomPacketPayload.Type<OpenKeycardScreenPayload> = TYPE
+    companion object {
+        val TYPE = CustomPacketPayload.Type<OpenKeycardScreenPayload>(ResourceLocation.fromNamespaceAndPath(Crtangarine.ID, "open_keycard_screen"))
+        val STREAM_CODEC: StreamCodec<FriendlyByteBuf, OpenKeycardScreenPayload> = StreamCodec.of(
+            { buf, value -> buf.writeUtf(value.token) },
+            { buf -> OpenKeycardScreenPayload(buf.readUtf()) }
+        )
+    }
+}

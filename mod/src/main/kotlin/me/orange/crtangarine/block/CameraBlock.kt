@@ -156,12 +156,27 @@ class CameraBlock(properties: Properties) : Block(properties), EntityBlock {
             return InteractionResult.FAIL
         }
 
-        if (stationBe.linkedCameras.contains(pos)) {
+        val cameraBe = level.getBlockEntity(pos) as? CameraBlockEntity
+
+        if (stationBe.linkedCameras.contains(pos) && cameraBe != null && cameraBe.linkedStationPos == stationPos) {
             player.displayClientMessage(Component.literal("Camera is already linked to this station!"), true)
             return InteractionResult.CONSUME
         }
 
-        stationBe.linkedCameras.add(pos)
+        if (stationBe.linkedCameras.size >= 3 && !stationBe.linkedCameras.contains(pos)) {
+            player.displayClientMessage(Component.literal("Error: This station already has 3 linked cameras!"), true)
+            return InteractionResult.FAIL
+        }
+
+        if (cameraBe != null) {
+            cameraBe.linkedStationPos = stationPos
+            cameraBe.setChanged()
+            level.sendBlockUpdated(pos, state, state, 3)
+        }
+
+        if (!stationBe.linkedCameras.contains(pos)) {
+            stationBe.linkedCameras.add(pos)
+        }
         stationBe.setChanged()
         level.sendBlockUpdated(stationPos, stationBe.blockState, stationBe.blockState, 3)
         CameraStationRegistry.triggerUpdate()

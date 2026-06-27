@@ -34,7 +34,12 @@ object CameraStreamingClient {
                 try {
                     Crtangarine.LOGGER.info("Connecting to Ktor server stream endpoint...")
                     val backendUri = ModConfiguration.CONFIG.backendUri.get()
-                    client.webSocket("ws://$backendUri/api/mod/stream") {
+                    val worldId = if (minecraftServer != null) {
+                        me.orange.crtangarine.world.WorldIdSavedData.get(minecraftServer!!.overworld()).worldId
+                    } else {
+                        "global"
+                    }
+                    client.webSocket("ws://$backendUri/api/mod/stream?worldId=$worldId") {
                         session = this
                         Crtangarine.LOGGER.info("Connected to Ktor server stream endpoint successfully.")
 
@@ -106,8 +111,10 @@ object CameraStreamingClient {
                         CameraStationRegistry.stations.values.map { station ->
                             val cameraInfos = station.linkedCameras.map { camPos ->
                                 val level = station.level
-                                // Check if block entity at camPos is a CameraBlockEntity
-                                val isOnline = level?.getBlockEntity(camPos) is me.orange.crtangarine.block.CameraBlockEntity
+                                val cameraBe = if (level != null && level.hasChunk(camPos.x shr 4, camPos.z shr 4)) {
+                                    level.getBlockEntity(camPos) as? me.orange.crtangarine.block.CameraBlockEntity
+                                } else null
+                                val isOnline = cameraBe != null && cameraBe.linkedStationPos == station.blockPos
                                 CameraInfo(
                                     pos = "${camPos.x},${camPos.y},${camPos.z}",
                                     name = "Camera (${camPos.x}, ${camPos.y}, ${camPos.z})",

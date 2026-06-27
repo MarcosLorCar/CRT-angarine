@@ -82,6 +82,9 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
   const solidMeshRef = useRef<THREE.InstancedMesh | null>(null);
   const hazardMeshRef = useRef<THREE.InstancedMesh | null>(null);
   const interactableMeshRef = useRef<THREE.InstancedMesh | null>(null);
+  const solidWireframeMeshRef = useRef<THREE.InstancedMesh | null>(null);
+  const hazardWireframeMeshRef = useRef<THREE.InstancedMesh | null>(null);
+  const interactableWireframeMeshRef = useRef<THREE.InstancedMesh | null>(null);
   const entitiesGroupRef = useRef<THREE.Group | null>(null);
 
   // Instanced attribute references for face culling
@@ -213,9 +216,37 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
         // Inject depth-based color scaling right before closing brace of main
         shader.fragmentShader = shader.fragmentShader.replace(
           /\}\s*$/,
-          `  float maxDist = 36.0;
-             float depthFactor = 1.0 - 0.5 * clamp(vDepth / maxDist, 0.0, 1.0);
-             depthFactor = pow(depthFactor, 1.0);
+          `  float depthFactor = 1.0 - clamp(vDepth / 36.0, 0.0, 1.0);
+             gl_FragColor.rgb *= depthFactor;
+          }`
+        );
+      };
+    };
+
+    const customizeWireframeMaterial = (material: THREE.Material) => {
+      material.onBeforeCompile = (shader) => {
+        // Inject varying definition in vertex shader header
+        shader.vertexShader = shader.vertexShader.replace(
+          'void main() {',
+          `varying float vDepth;
+          void main() {`
+        );
+        // Inject vDepth calculation in vertex shader body after project_vertex
+        shader.vertexShader = shader.vertexShader.replace(
+          '#include <project_vertex>',
+          `#include <project_vertex>
+          vDepth = -mvPosition.z;`
+        );
+        // Inject varying in fragment shader header
+        shader.fragmentShader = shader.fragmentShader.replace(
+          'void main() {',
+          `varying float vDepth;
+          void main() {`
+        );
+        // Inject depth-based color scaling right before closing brace of main
+        shader.fragmentShader = shader.fragmentShader.replace(
+          /\}\s*$/,
+          `  float depthFactor = 1.0 - clamp(vDepth / 36.0, 0.0, 1.0);
              gl_FragColor.rgb *= depthFactor;
           }`
         );
@@ -223,10 +254,14 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
     };
 
     // Solid view is always used, so we use solid view settings with transparent false
+    // We add polygonOffset to allow wireframe lines to render on top cleanly
     const solidMat = new THREE.MeshLambertMaterial({
-      color: 0x22ee22,
+      color: 0x22ee22, // Original solid green view
       wireframe: false,
-      transparent: false
+      transparent: false,
+      polygonOffset: true,
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1
     });
     customizeMaterial(solidMat);
     const solidMesh = new THREE.InstancedMesh(solidGeom, solidMat, maxInstances);
@@ -235,10 +270,28 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
     scene.add(solidMesh);
     solidMeshRef.current = solidMesh;
 
+    // Solid Wireframe Outline Overlay (no diagonals, using EdgesGeometry)
+    const solidEdgesGeom = new THREE.EdgesGeometry(solidGeom);
+    const solidWireframeMat = new THREE.LineBasicMaterial({
+      color: 0x0a5e0a, // Dark green outline
+      transparent: true,
+      opacity: 0.6
+    });
+    customizeWireframeMaterial(solidWireframeMat);
+    const solidWireframeMesh = new THREE.InstancedMesh(solidEdgesGeom, solidWireframeMat, maxInstances);
+    solidWireframeMesh.count = 0;
+    solidWireframeMesh.frustumCulled = false;
+    solidWireframeMesh.instanceMatrix = solidMesh.instanceMatrix; // Share instance matrices!
+    scene.add(solidWireframeMesh);
+    solidWireframeMeshRef.current = solidWireframeMesh;
+
     const hazardMat = new THREE.MeshLambertMaterial({
-      color: 0xff2222,
+      color: 0xff2222, // Original solid red view
       wireframe: false,
-      transparent: false
+      transparent: false,
+      polygonOffset: true,
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1
     });
     customizeMaterial(hazardMat);
     const hazardMesh = new THREE.InstancedMesh(hazardGeom, hazardMat, maxInstances);
@@ -247,10 +300,28 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
     scene.add(hazardMesh);
     hazardMeshRef.current = hazardMesh;
 
+    // Hazard Wireframe Outline Overlay (no diagonals, using EdgesGeometry)
+    const hazardEdgesGeom = new THREE.EdgesGeometry(hazardGeom);
+    const hazardWireframeMat = new THREE.LineBasicMaterial({
+      color: 0x5e0a0a, // Dark red outline
+      transparent: true,
+      opacity: 0.6
+    });
+    customizeWireframeMaterial(hazardWireframeMat);
+    const hazardWireframeMesh = new THREE.InstancedMesh(hazardEdgesGeom, hazardWireframeMat, maxInstances);
+    hazardWireframeMesh.count = 0;
+    hazardWireframeMesh.frustumCulled = false;
+    hazardWireframeMesh.instanceMatrix = hazardMesh.instanceMatrix; // Share instance matrices!
+    scene.add(hazardWireframeMesh);
+    hazardWireframeMeshRef.current = hazardWireframeMesh;
+
     const interactableMat = new THREE.MeshLambertMaterial({
-      color: 0x22aaff,
+      color: 0x22aaff, // Original solid blue/interactable view
       wireframe: false,
-      transparent: false
+      transparent: false,
+      polygonOffset: true,
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1
     });
     customizeMaterial(interactableMat);
     const interactableMesh = new THREE.InstancedMesh(interactableGeom, interactableMat, maxInstances);
@@ -258,6 +329,21 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
     interactableMesh.frustumCulled = false;
     scene.add(interactableMesh);
     interactableMeshRef.current = interactableMesh;
+
+    // Interactable Wireframe Outline Overlay (no diagonals, using EdgesGeometry)
+    const interactableEdgesGeom = new THREE.EdgesGeometry(interactableGeom);
+    const interactableWireframeMat = new THREE.LineBasicMaterial({
+      color: 0x0a3b5e, // Dark blue outline
+      transparent: true,
+      opacity: 0.6
+    });
+    customizeWireframeMaterial(interactableWireframeMat);
+    const interactableWireframeMesh = new THREE.InstancedMesh(interactableEdgesGeom, interactableWireframeMat, maxInstances);
+    interactableWireframeMesh.count = 0;
+    interactableWireframeMesh.frustumCulled = false;
+    interactableWireframeMesh.instanceMatrix = interactableMesh.instanceMatrix; // Share instance matrices!
+    scene.add(interactableWireframeMesh);
+    interactableWireframeMeshRef.current = interactableWireframeMesh;
 
     // Shared Entity Geometries
     const entityGeom = new THREE.OctahedronGeometry(1.0, 0);
@@ -307,7 +393,7 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
       uniforms: {
         tDiffuse: { value: renderTarget.texture },
         uTime: uTimeRef.current,
-        uCrtEnabled: { value: true } // Always true
+        uCrtEnabled: { value: true }
       }
     });
     crtMaterialRef.current = crtMaterial;
@@ -357,11 +443,17 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
       cancelAnimationFrame(animationFrameId);
       renderer.dispose();
       solidGeom.dispose();
+      solidEdgesGeom.dispose();
       hazardGeom.dispose();
+      hazardEdgesGeom.dispose();
       interactableGeom.dispose();
+      interactableEdgesGeom.dispose();
       solidMat.dispose();
+      solidWireframeMat.dispose();
       hazardMat.dispose();
+      hazardWireframeMat.dispose();
       interactableMat.dispose();
+      interactableWireframeMat.dispose();
       
       // Dispose shared entity resources
       entityGeom.dispose();
@@ -392,8 +484,11 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
         setLatency(0);
       }
       if (solidMeshRef.current) solidMeshRef.current.count = 0;
+      if (solidWireframeMeshRef.current) solidWireframeMeshRef.current.count = 0;
       if (hazardMeshRef.current) hazardMeshRef.current.count = 0;
+      if (hazardWireframeMeshRef.current) hazardWireframeMeshRef.current.count = 0;
       if (interactableMeshRef.current) interactableMeshRef.current.count = 0;
+      if (interactableWireframeMeshRef.current) interactableWireframeMeshRef.current.count = 0;
       return;
     }
 
@@ -407,8 +502,11 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
       setLatency(0);
     }
     if (solidMeshRef.current) solidMeshRef.current.count = 0;
+    if (solidWireframeMeshRef.current) solidWireframeMeshRef.current.count = 0;
     if (hazardMeshRef.current) hazardMeshRef.current.count = 0;
+    if (hazardWireframeMeshRef.current) hazardWireframeMeshRef.current.count = 0;
     if (interactableMeshRef.current) interactableMeshRef.current.count = 0;
+    if (interactableWireframeMeshRef.current) interactableWireframeMeshRef.current.count = 0;
     
     // Clear entities (no need to dispose shared geometries/materials)
     const group = entitiesGroupRef.current;
@@ -515,7 +613,7 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
             const rz = z + 0.5 - camZ;
 
             dummy.position.set(rx, ry, rz);
-            dummy.scale.set(1, 1, 1);
+            dummy.scale.set(0.98, 0.98, 0.98);
             dummy.updateMatrix();
 
             if (S === 1 && solidCount < maxInstances) {
@@ -551,6 +649,9 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
               solidVisibilityRef.current.needsUpdate = true;
             }
           }
+          if (solidWireframeMeshRef.current) {
+            solidWireframeMeshRef.current.count = solidCount;
+          }
           if (hazardMeshRef.current) {
             hazardMeshRef.current.count = hazardCount;
             hazardMeshRef.current.instanceMatrix.needsUpdate = true;
@@ -558,12 +659,18 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
               hazardVisibilityRef.current.needsUpdate = true;
             }
           }
+          if (hazardWireframeMeshRef.current) {
+            hazardWireframeMeshRef.current.count = hazardCount;
+          }
           if (interactableMeshRef.current) {
             interactableMeshRef.current.count = interactableCount;
             interactableMeshRef.current.instanceMatrix.needsUpdate = true;
             if (interactableVisibilityRef.current) {
               interactableVisibilityRef.current.needsUpdate = true;
             }
+          }
+          if (interactableWireframeMeshRef.current) {
+            interactableWireframeMeshRef.current.count = interactableCount;
           }
 
         } else if (msg.type === "me.orange.crtangarine.shared.EntityStreamMessage" && msg.data?.entities) {

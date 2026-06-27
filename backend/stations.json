@@ -1,1 +1,1 @@
-[{"ownerUuid":"380df991-f603-344c-a090-369bad2a924a","customName":"Camera Station (234, 72, 144)","pos":"234,72,144","cameras":[{"pos":"242,77,143","name":"Camera (242, 77, 143)","x":242.5,"y":77.5,"z":143.5,"isOnline":true},{"pos":"237,74,135","name":"Camera (237, 74, 135)","x":237.5,"y":74.5,"z":135.5,"isOnline":false}]}]
+[{"ownerUuid":"380df991-f603-344c-a090-369bad2a924a","customName":"Station A","pos":"9,73,36","cameras":[{"pos":"0,68,28","name":"Camera (0, 68, 28)","x":0.5,"y":68.5,"z":28.5,"isOnline":true}]}]

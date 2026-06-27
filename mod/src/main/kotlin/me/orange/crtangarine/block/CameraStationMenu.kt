@@ -12,12 +12,29 @@ import net.minecraft.world.item.component.CustomData
 
 class CameraStationMenu(windowId: Int, playerInv: Inventory, val blockPos: BlockPos) : AbstractContainerMenu(ModBlocks.CAMERA_STATION_MENU_TYPE, windowId) {
 
+    companion object {
+        // --- Keycard Slot Offset ---
+        const val KEYCARD_SLOT_X = 107
+        const val KEYCARD_SLOT_Y = 15
+
+        // --- Player Inventory Grid ---
+        const val PLAYER_INV_START_X = 8
+        const val PLAYER_INV_START_Y = 51
+
+        // --- Player Hotbar ---
+        const val PLAYER_HOTBAR_START_X = 8
+        const val PLAYER_HOTBAR_START_Y = 109
+
+        // --- Standard Slot Size (including spacing) ---
+        const val SLOT_SPACING = 18
+    }
+
     val blockEntity = playerInv.player.level().getBlockEntity(blockPos) as? CameraStationBlockEntity
     val container = blockEntity?.inventory ?: net.minecraft.world.SimpleContainer(1)
 
     init {
         // Slot for Security Keycard
-        addSlot(object : Slot(container, 0, 107, 20) {
+        addSlot(object : Slot(container, 0, KEYCARD_SLOT_X, KEYCARD_SLOT_Y) {
             override fun mayPlace(stack: ItemStack): Boolean {
                 return blockEntity?.ownerUuid?.isEmpty() == true && stack.item is SecurityKeycardItem
             }
@@ -27,16 +44,16 @@ class CameraStationMenu(windowId: Int, playerInv: Inventory, val blockPos: Block
             }
         })
 
-        // Player Inventory Slots starting at y = 84
+        // Player Inventory Slots
         for (row in 0..2) {
             for (col in 0..8) {
-                addSlot(Slot(playerInv, col + row * 9 + 9, 8 + col * 18, 51 + row * 18))
+                addSlot(Slot(playerInv, col + row * 9 + 9, PLAYER_INV_START_X + col * SLOT_SPACING, PLAYER_INV_START_Y + row * SLOT_SPACING))
             }
         }
 
-        // Player Hotbar Slots starting at y = 142
+        // Player Hotbar Slots
         for (col in 0..8) {
-            addSlot(Slot(playerInv, col, 8 + col * 18, 109))
+            addSlot(Slot(playerInv, col, PLAYER_HOTBAR_START_X + col * SLOT_SPACING, PLAYER_HOTBAR_START_Y))
         }
     }
 
@@ -57,6 +74,14 @@ class CameraStationMenu(windowId: Int, playerInv: Inventory, val blockPos: Block
                     if (currentOwner.isEmpty() || currentOwner == player.uuid.toString()) {
                         blockEntity?.ownerUuid = keycardOwner
                         blockEntity?.setChanged()
+                        
+                        val level = blockEntity?.level
+                        if (level != null && blockEntity != null) {
+                            val state = blockEntity.blockState
+                            if (state.hasProperty(CameraStationBlock.OWNED)) {
+                                level.setBlock(blockPos, state.setValue(CameraStationBlock.OWNED, true), 3)
+                            }
+                        }
                         
                         // Return the keycard to the player or drop it
                         if (!player.inventory.add(keycard)) {

@@ -1,5 +1,8 @@
 {
-  "itemGroup.crtangarine": "Example Mod Tab",
+  "itemGroup.crtangarine": "CRT-angarine Surveillance",
   "block.crtangarine.camera_block": "Camera Block",
-  "item.crtangarine.camera_block": "Camera Block"
+  "item.crtangarine.camera_block": "Camera Block",
+  "block.crtangarine.camera_station": "Camera Station",
+  "item.crtangarine.camera_station": "Camera Station",
+  "item.crtangarine.security_keycard": "Security Keycard"
 }

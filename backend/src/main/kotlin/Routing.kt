@@ -44,7 +44,7 @@ fun Application.configureRouting() {
         post("/api/register-token") {
             try {
                 val packet = call.receive<AuthTokenPacket>()
-                application.environment.log.info("Registering token for player ${packet.playerUuid}")
+                application.environment.log.info("Registering token for player ${packet.playerUuid} in world ${packet.worldId}")
                 TokenRegistry.registerFromPacket(packet)
                 call.respond(HttpStatusCode.OK, mapOf("status" to "registered"))
             } catch (e: Exception) {
@@ -59,19 +59,21 @@ fun Application.configureRouting() {
                 return@get
             }
             val playerUuid = TokenRegistry.getPlayerUuid(token)
+            val worldId = TokenRegistry.getWorldId(token) ?: "global"
             if (playerUuid == null) {
                 call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Player not found for token"))
                 return@get
             }
-            val userCameras = CameraStreamRegistry.getCamerasForPlayer(playerUuid)
+            val userCameras = CameraStreamRegistry.getCamerasForPlayer(playerUuid, worldId)
             call.respondText(Json.encodeToString(userCameras), ContentType.Application.Json)
         }
 
         webSocket("/api/mod/stream") {
-            application.environment.log.info("Mod connected to stream endpoint")
-            CameraStreamRegistry.modSessions.add(this)
+            val worldId = call.request.queryParameters["worldId"] ?: "global"
+            application.environment.log.info("Mod connected to stream endpoint for world $worldId")
+            CameraStreamRegistry.modSessions[this] = worldId
             try {
-                CameraStreamRegistry.syncActiveCamerasToMod(this)
+                CameraStreamRegistry.syncActiveCamerasToMod(this, worldId)
             } catch (e: Exception) {
                 application.environment.log.error("Error syncing active cameras on mod connection: ${e.message}")
             }
@@ -83,16 +85,16 @@ fun Application.configureRouting() {
                             val msg = Json.decodeFromString<ModMessage>(text)
                             when (msg) {
                                 is RegistryUpdateMessage -> {
-                                    CameraStreamRegistry.updateStations(msg.data.stations)
+                                    CameraStreamRegistry.updateStations(msg.data.stations, worldId)
                                     for (station in msg.data.stations) {
-                                        CameraStreamRegistry.broadcastRegistryToWebClients(station.ownerUuid)
+                                        CameraStreamRegistry.broadcastRegistryToWebClients(station.ownerUuid, worldId)
                                     }
                                 }
                                 is FrustumPayloadMessage -> {
-                                    CameraStreamRegistry.forwardToWebClients(msg.data.cameraId, text)
+                                    CameraStreamRegistry.forwardToWebClients(msg.data.cameraId, worldId, text)
                                 }
                                 is EntityStreamMessage -> {
-                                    CameraStreamRegistry.forwardToWebClients(msg.data.cameraId, text)
+                                    CameraStreamRegistry.forwardToWebClients(msg.data.cameraId, worldId, text)
                                 }
                             }
                         } catch (e: Exception) {
@@ -102,7 +104,7 @@ fun Application.configureRouting() {
                 }
             } finally {
                 CameraStreamRegistry.modSessions.remove(this)
-                application.environment.log.info("Mod disconnected from stream endpoint")
+                application.environment.log.info("Mod disconnected from stream endpoint for world $worldId")
             }
         }
 
@@ -113,10 +115,11 @@ fun Application.configureRouting() {
                 close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Unauthorized or missing parameters"))
                 return@webSocket
             }
+            val worldId = TokenRegistry.getWorldId(token) ?: "global"
 
-            application.environment.log.info("Web client subscribed to camera $cameraId")
-            CameraStreamRegistry.webClients[this] = cameraId
-            CameraStreamRegistry.startStreaming(cameraId)
+            application.environment.log.info("Web client subscribed to camera $cameraId in world $worldId")
+            CameraStreamRegistry.webClients[this] = WebClientSubscription(cameraId, worldId)
+            CameraStreamRegistry.startStreaming(cameraId, worldId)
 
             try {
                 for (frame in incoming) {
@@ -124,8 +127,8 @@ fun Application.configureRouting() {
                 }
             } finally {
                 CameraStreamRegistry.webClients.remove(this)
-                CameraStreamRegistry.stopStreaming(cameraId)
-                application.environment.log.info("Web client unsubscribed from camera $cameraId")
+                CameraStreamRegistry.stopStreaming(cameraId, worldId)
+                application.environment.log.info("Web client unsubscribed from camera $cameraId in world $worldId")
             }
         }
 
@@ -137,14 +140,15 @@ fun Application.configureRouting() {
             }
 
             val playerUuid = TokenRegistry.getPlayerUuid(token)
+            val worldId = TokenRegistry.getWorldId(token) ?: "global"
             if (playerUuid == null) {
                 close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Player not found"))
                 return@webSocket
             }
 
-            CameraStreamRegistry.webRegistrySessions[this] = playerUuid
+            CameraStreamRegistry.webRegistrySessions[this] = WebRegistrySubscription(playerUuid, worldId)
             // Send initial camera list immediately upon connection
-            val userCameras = CameraStreamRegistry.getCamerasForPlayer(playerUuid)
+            val userCameras = CameraStreamRegistry.getCamerasForPlayer(playerUuid, worldId)
             send(Json.encodeToString(userCameras))
 
             try {

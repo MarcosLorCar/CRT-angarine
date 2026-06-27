@@ -14,4 +14,15 @@ object ClientPacketHandler {
             ).invoke()
         }
     }
+
+    fun handleOpenKeycardScreen(payload: OpenKeycardScreenPayload, context: IPayloadContext) {
+        context.enqueueWork {
+            runForDist(
+                clientTarget = { {
+                    me.orange.crtangarine.client.openKeycardScreen(payload.token)
+                } },
+                serverTarget = { { } }
+            ).invoke()
+        }
+    }
 }

@@ -18,11 +18,17 @@ class CameraBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(ModBlock
         }
         facing.toYRot()
     }
+    var linkedStationPos: BlockPos? = null
 
     override fun saveAdditional(tag: CompoundTag, registries: HolderLookup.Provider) {
         super.saveAdditional(tag, registries)
         tag.putFloat("Pitch", pitch)
         tag.putFloat("Yaw", yaw)
+        linkedStationPos?.let {
+            tag.putInt("StationX", it.x)
+            tag.putInt("StationY", it.y)
+            tag.putInt("StationZ", it.z)
+        }
     }
 
     override fun loadAdditional(tag: CompoundTag, registries: HolderLookup.Provider) {
@@ -32,6 +38,15 @@ class CameraBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(ModBlock
         }
         if (tag.contains("Yaw")) {
             yaw = tag.getFloat("Yaw")
+        }
+        if (tag.contains("StationX") && tag.contains("StationY") && tag.contains("StationZ")) {
+            linkedStationPos = BlockPos(
+                tag.getInt("StationX"),
+                tag.getInt("StationY"),
+                tag.getInt("StationZ")
+            )
+        } else {
+            linkedStationPos = null
         }
     }
 

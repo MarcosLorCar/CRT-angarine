@@ -62,7 +62,8 @@ object ServerPacketHandler {
                     return@enqueueWork
                 }
                 val pos = payload.cameraPos
-                if (!stationBe.linkedCameras.contains(pos)) {
+                val cameraBe = level.getBlockEntity(pos) as? CameraBlockEntity
+                if (!stationBe.linkedCameras.contains(pos) || cameraBe == null || cameraBe.linkedStationPos != stationPos) {
                     player.displayClientMessage(Component.literal("Error: Camera is not linked to this station!"), true)
                     return@enqueueWork
                 }
@@ -75,7 +76,6 @@ object ServerPacketHandler {
                     net.minecraft.core.Direction.NORTH
                 }
 
-                val cameraBe = level.getBlockEntity(pos) as? CameraBlockEntity
                 val yaw = cameraBe?.yaw ?: facing.toYRot()
                 val pitch = cameraBe?.pitch ?: 0.0f
 

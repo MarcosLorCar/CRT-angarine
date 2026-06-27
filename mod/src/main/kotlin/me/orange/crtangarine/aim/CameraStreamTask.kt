@@ -50,6 +50,7 @@ object CameraStreamTask {
             if (cameraLevel == null) continue
 
             val cameraBe = cameraLevel.getBlockEntity(camPos) as? me.orange.crtangarine.block.CameraBlockEntity ?: continue
+            if (cameraBe.linkedStationPos == null) continue
 
             // Math projection setup
             val pitch = cameraBe.pitch
@@ -98,32 +99,52 @@ object CameraStreamTask {
         val lookY = lookDir.y
         val lookZ = lookDir.z
 
-        for (x in minX..maxX) {
-            val dx = (x + 0.5) - camCenterX
-            for (y in minY..maxY) {
-                val dy = (y + 0.5) - camCenterY
-                for (z in minZ..maxZ) {
-                    if (x == camPos.x && y == camPos.y && z == camPos.z) continue // Skip camera block
+        val minChunkX = minX shr 4
+        val maxChunkX = maxX shr 4
+        val minChunkZ = minZ shr 4
+        val maxChunkZ = maxZ shr 4
 
-                    val dz = (z + 0.5) - camCenterZ
-                    val distSq = dx * dx + dy * dy + dz * dz
-                    if (distSq > radiusSq || distSq == 0.0) continue
+        for (cx in minChunkX..maxChunkX) {
+            for (cz in minChunkZ..maxChunkZ) {
+                if (!level.hasChunk(cx, cz)) continue
+                val chunk = level.getChunk(cx, cz)
 
-                    val dist = Math.sqrt(distSq)
-                    val dot = (dx * lookX + dy * lookY + dz * lookZ) / dist
-                    if (dot >= cosLimit) {
-                        val p = BlockPos(x, y, z)
-                        val state = level.getBlockState(p)
-                        val classId = classifyBlock(state)
-                        if (classId != 0) { // Only send non-air/non-passable blocks to keep payload small
-                            blocksList.add(
-                                BlockData(
-                                    x = x,
-                                    y = y,
-                                    z = z,
-                                    stateId = classId
-                                )
-                            )
+                val startX = minX.coerceAtLeast(cx shl 4)
+                val endX = maxX.coerceAtMost((cx shl 4) + 15)
+                val startZ = minZ.coerceAtLeast(cz shl 4)
+                val endZ = maxZ.coerceAtMost((cz shl 4) + 15)
+
+                for (x in startX..endX) {
+                    val dx = (x + 0.5) - camCenterX
+                    for (z in startZ..endZ) {
+                        val dz = (z + 0.5) - camCenterZ
+                        val dist2DSq = dx * dx + dz * dz
+                        if (dist2DSq > radiusSq) continue
+
+                        for (y in minY..maxY) {
+                            if (x == camPos.x && y == camPos.y && z == camPos.z) continue // Skip camera block
+
+                            val dy = (y + 0.5) - camCenterY
+                            val distSq = dist2DSq + dy * dy
+                            if (distSq > radiusSq || distSq == 0.0) continue
+
+                            val dist = Math.sqrt(distSq)
+                            val dot = (dx * lookX + dy * lookY + dz * lookZ) / dist
+                            if (dot >= cosLimit) {
+                                val p = BlockPos(x, y, z)
+                                val state = chunk.getBlockState(p)
+                                val classId = classifyBlock(state)
+                                if (classId != 0) { // Only send non-air/non-passable blocks to keep payload small
+                                    blocksList.add(
+                                        BlockData(
+                                            x = x,
+                                            y = y,
+                                            z = z,
+                                            stateId = classId
+                                        )
+                                    )
+                                }
+                            }
                         }
                     }
                 }
