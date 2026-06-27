@@ -40,7 +40,7 @@ object Crtangarine {
     val LOGGER: Logger = LogManager.getLogger(ID)
 
     init {
-        LOGGER.log(Level.INFO, "Hello world!")
+        LOGGER.info("Initializing CRT-angarine mod...")
 
         // Register configuration
         val container = ModLoadingContext.get().activeContainer
@@ -64,7 +64,7 @@ object Crtangarine {
         // Register the common setup event listener directly on the mod bus
         MOD_BUS.addListener(::onCommonSetup)
 
-        val obj = runForDist(
+        runForDist(
             clientTarget = {
                 MOD_BUS.addListener(::onClientSetup)
                 MOD_BUS.addListener(::onRegisterScreens)
@@ -75,11 +75,8 @@ object Crtangarine {
             },
             serverTarget = {
                 MOD_BUS.addListener(::onServerSetup)
-                "test"
+                "server"
             })
-
-
-        println(obj)
     }
 
     /**
@@ -88,7 +85,7 @@ object Crtangarine {
      * Fired on the mod-specific event bus.
      */
     private fun onClientSetup(event: FMLClientSetupEvent) {
-        LOGGER.log(Level.INFO, "Initializing client...")
+        LOGGER.info("CRT-angarine client setup complete.")
     }
 
     private fun onRegisterRenderers(event: EntityRenderersEvent.RegisterRenderers) {
@@ -114,11 +111,11 @@ object Crtangarine {
      * Fired on the global Forge bus.
      */
     private fun onServerSetup(event: FMLDedicatedServerSetupEvent) {
-        LOGGER.log(Level.INFO, "Server starting...")
+        LOGGER.info("CRT-angarine dedicated server setup complete.")
     }
 
     private fun onCommonSetup(event: FMLCommonSetupEvent) {
-        LOGGER.log(Level.INFO, "Hello! This is working!")
+        LOGGER.info("CRT-angarine common setup complete.")
     }
 }
 
