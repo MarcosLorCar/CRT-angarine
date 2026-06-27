@@ -17,6 +17,13 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Extract project metadata
+        run: |
+          PROJECT_VERSION=$(grep 'project_version' gradle.properties | cut -d'=' -f2 | tr -d '\r')
+          MINECRAFT_VERSION=$(grep 'minecraft_version' mod/gradle.properties | cut -d'=' -f2 | tr -d '\r')
+          echo "PROJECT_VERSION=$PROJECT_VERSION" >> $GITHUB_ENV
+          echo "MINECRAFT_VERSION=$MINECRAFT_VERSION" >> $GITHUB_ENV
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -40,6 +47,12 @@ jobs:
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          name: "[${{ env.MINECRAFT_VERSION }}] ${{ github.ref_name }}"
+          body: |
+            ### Requirements & Compatibility
+            * **Minecraft Version:** ${{ env.MINECRAFT_VERSION }}
+            * **Mod Loader:** NeoForge
+            * **Java Version:** 21
           files: |
             backend/build/libs/backend-*.jar
             !backend/build/libs/backend-*-plain.jar
