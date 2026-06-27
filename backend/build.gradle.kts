@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "me.orange"
-version = "1.0.0"
+version = findProperty("project_version") ?: "1.0.0-SNAPSHOT"
 
 application {
     mainClass.set("io.ktor.server.netty.EngineMain")

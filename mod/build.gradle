@@ -9,7 +9,7 @@ plugins {
     id 'org.jetbrains.kotlin.plugin.serialization'
 }
 
-version = mod_version
+version = findProperty("project_version") ?: "1.0.0-SNAPSHOT"
 group = mod_group_id
 
 repositories {
@@ -180,7 +180,7 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
             mod_id                 : mod_id,
             mod_name               : mod_name,
             mod_license            : mod_license,
-            mod_version            : mod_version,
+            mod_version            : version,
             mod_authors            : mod_authors,
             mod_description        : mod_description
     ]
