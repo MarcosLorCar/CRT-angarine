@@ -84,3 +84,9 @@ mod/*.iml
 
 # Crash logs
 hs_err_pid*
+
+# Kotlin compiler cache
+.kotlin/
+
+# Exclude gradle-wrapper.jar from the *.jar ignore rule
+!gradle/wrapper/gradle-wrapper.jar
