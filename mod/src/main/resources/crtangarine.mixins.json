@@ -4,6 +4,7 @@
   "package": "me.orange.crtangarine.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "CameraMixin"
   ],
   "client": [
   ],

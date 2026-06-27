@@ -12,6 +12,12 @@ import net.minecraft.network.chat.Component
 import net.minecraft.world.level.GameType
 import net.neoforged.neoforge.network.handling.IPayloadContext
 import net.neoforged.neoforge.network.PacketDistributor
+import net.minecraft.world.entity.decoration.ArmorStand
+import net.minecraft.world.entity.EquipmentSlot
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.Items
+import net.minecraft.core.component.DataComponents
+import net.minecraft.world.item.component.ResolvableProfile
 
 object ServerPacketHandler {
     fun handleUnlinkCamera(payload: UnlinkCameraPayload, context: IPayloadContext) {
@@ -85,7 +91,7 @@ object ServerPacketHandler {
                 val originalYaw = player.yRot
                 val originalFlying = player.abilities.flying
 
-                // Align player's look direction with the initial camera direction at their current console position
+                // Keep player at their current console position, but align their look direction with the initial camera direction
                 player.teleportTo(level, originalPos.x, originalPos.y, originalPos.z, yaw, pitch)
 
                 // Save session
@@ -106,11 +112,7 @@ object ServerPacketHandler {
             if (player != null && level != null) {
                 val session = CameraAimManager.sessions.remove(player.uuid)
                 if (session != null) {
-                    // Restore game mode
-                    player.setGameMode(session.originalGameMode)
-                    player.abilities.flying = session.originalFlying
-                    player.onUpdateAbilities()
-                    // Teleport back to console
+                    // Restore original look direction
                     player.teleportTo(level, session.originalPos.x, session.originalPos.y, session.originalPos.z, session.originalYaw, session.originalPitch)
                 }
 
