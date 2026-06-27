@@ -11,6 +11,7 @@ import io.ktor.websocket.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
+import io.ktor.server.application.ServerReady
 import me.orange.crtangarine.shared.*
 import org.slf4j.LoggerFactory
 
@@ -22,8 +23,8 @@ data class LoginResponse(val success: Boolean, val message: String, val token: S
 
 fun Application.configureRouting() {
     val logger = LoggerFactory.getLogger("me.orange.Server")
-    monitor.subscribe(ApplicationStarted) {
-        val port = environment.config.propertyOrNull("ktor.deployment.port")?.getString() ?: "8080"
+    monitor.subscribe(ServerReady) { env ->
+        val port = env.config.propertyOrNull("ktor.deployment.port")?.getString() ?: "8080"
         logger.info("CRT-angarine Webserver is ready! Responding at http://localhost:$port")
     }
 

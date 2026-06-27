@@ -46,10 +46,10 @@ jobs:
 
       - name: Package Webserver Zip
         run: |
-          mkdir crtangarine-webserver
+          mkdir -p crtangarine-webserver/bin
           
-          # Copy the shadow jar to the folder with a generic name
-          cp backend/build/libs/backend-${{ env.PROJECT_VERSION }}.jar crtangarine-webserver/backend.jar
+          # Copy the shadow jar to the bin folder with a generic name
+          cp backend/build/libs/backend-${{ env.PROJECT_VERSION }}.jar crtangarine-webserver/bin/backend.jar
           
           # Create start.bat for Windows users
           cat << 'EOF' > crtangarine-webserver/start.bat
@@ -61,9 +61,9 @@ jobs:
           if errorlevel 1 goto NOJAVA
 
           echo Java found! Starting webserver...
-          if not exist backend.jar goto NOJAR
+          if not exist bin\backend.jar goto NOJAR
 
-          java -jar backend.jar
+          java -jar bin\backend.jar
           pause
           exit /b
 
@@ -77,8 +77,8 @@ jobs:
           exit /b
 
           :NOJAR
-          echo [ERROR] backend.jar was not found in this folder!
-          echo Please make sure this batch file is in the same folder as backend.jar.
+          echo [ERROR] bin/backend.jar was not found in this folder!
+          echo Please make sure this batch file is in the same folder as the bin directory.
           pause
           exit /b
           EOF
@@ -97,13 +97,13 @@ jobs:
           fi
 
           echo "Java found! Starting webserver..."
-          if [ ! -f backend.jar ]; then
-              echo "[ERROR] backend.jar was not found in this folder!"
-              echo "Please make sure this script is in the same folder as backend.jar."
+          if [ ! -f bin/backend.jar ]; then
+              echo "[ERROR] bin/backend.jar was not found in this folder!"
+              echo "Please make sure this script is in the same folder as the bin directory."
               exit 1
           fi
 
-          java -jar backend.jar
+          java -jar bin/backend.jar
           EOF
           chmod +x crtangarine-webserver/start.sh
           
