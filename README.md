@@ -30,6 +30,7 @@ The webserver runs the backend database and serves the CRT browser dashboard.
 2. Place the JAR file inside your Minecraft client's `mods` folder.
 3. Launch Minecraft 1.21.1 using the NeoForge mod loader.
 4. Once in-game, place down a Camera Station and use a Security Keycard to configure your camera feed and link it to the webserver.
+5. (Optional) If the webserver is running on a different computer, open the `config/crtangarine-common.toml` file in your Minecraft directory and change the `backendUri` property to the IP address and port of that computer (e.g. `192.168.1.100:8080`).
 
 ---
 
