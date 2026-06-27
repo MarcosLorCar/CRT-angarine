@@ -19,8 +19,8 @@ jobs:
 
       - name: Extract project metadata
         run: |
-          PROJECT_VERSION=$(grep 'project_version' gradle.properties | cut -d'=' -f2 | tr -d '\r')
-          MINECRAFT_VERSION=$(grep 'minecraft_version' mod/gradle.properties | cut -d'=' -f2 | tr -d '\r')
+          PROJECT_VERSION=$(grep '^project_version=' gradle.properties | cut -d'=' -f2 | tr -d '\r')
+          MINECRAFT_VERSION=$(grep '^minecraft_version=' mod/gradle.properties | cut -d'=' -f2 | tr -d '\r')
           echo "PROJECT_VERSION=$PROJECT_VERSION" >> $GITHUB_ENV
           echo "MINECRAFT_VERSION=$MINECRAFT_VERSION" >> $GITHUB_ENV
 
