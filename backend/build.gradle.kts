@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "me.orange"
-version = "1.0.0-SNAPSHOT"
+version = "1.0.0"
 
 application {
     mainClass.set("io.ktor.server.netty.EngineMain")
@@ -33,7 +33,6 @@ dependencies {
     implementation("io.ktor:ktor-server-config-yaml:$ktor_version")
     implementation("io.ktor:ktor-server-content-negotiation:$ktor_version")
     implementation("io.ktor:ktor-server-core:$ktor_version")
-    implementation("io.ktor:ktor-server-cors:$ktor_version")
     implementation("io.ktor:ktor-server-netty:$ktor_version")
     implementation("io.ktor:ktor-server-websockets:$ktor_version")
     implementation(libs.logback.classic)

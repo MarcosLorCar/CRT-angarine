@@ -20,7 +20,6 @@ class ServerTest {
 
 private fun ApplicationTestBuilder.configure() {
     application {
-        configureHttp()
         configureSerialization()
         configureWebsockets()
         configureRouting()
