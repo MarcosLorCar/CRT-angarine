@@ -39,31 +39,14 @@ abstract class CameraMixin {
     ) {
         if (me.orange.crtangarine.client.ClientInputHandler.isAiming) {
             val pos = me.orange.crtangarine.client.ClientInputHandler.aimingCameraPos
-            val mc = net.minecraft.client.Minecraft.getInstance()
-            val player = mc.player
-            if (pos != null && player != null) {
+            if (pos != null) {
                 // Smoothly override camera rendering coordinates to the camera block center
                 this.position = Vec3(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5)
                 this.blockPosition.set(pos)
 
-                // Calculate mouse look deltas from the fixed original orientation
-                val deltaYaw = player.yRot - me.orange.crtangarine.client.ClientInputHandler.originalYaw
-                val deltaPitch = player.xRot - me.orange.crtangarine.client.ClientInputHandler.originalPitch
-
-                // Accumulate the delta into our separate camera angles
-                me.orange.crtangarine.client.ClientInputHandler.cameraYaw += deltaYaw
-                me.orange.crtangarine.client.ClientInputHandler.cameraPitch = 
-                    (me.orange.crtangarine.client.ClientInputHandler.cameraPitch + deltaPitch).coerceIn(-90f, 90f)
-
-                // Freeze the player model's head and body at the original console orientation
-                player.yRot = me.orange.crtangarine.client.ClientInputHandler.originalYaw
-                player.xRot = me.orange.crtangarine.client.ClientInputHandler.originalPitch
-                player.yRotO = me.orange.crtangarine.client.ClientInputHandler.originalYaw
-                player.xRotO = me.orange.crtangarine.client.ClientInputHandler.originalPitch
-
-                // Force the rendered camera angles to use the accumulated angles
-                this.xRot = me.orange.crtangarine.client.ClientInputHandler.cameraPitch
-                this.yRot = me.orange.crtangarine.client.ClientInputHandler.cameraYaw
+                // Override camera rendering angles to match entity's actual looking rotation
+                this.xRot = entity.xRot
+                this.yRot = entity.yRot
             }
         }
     }

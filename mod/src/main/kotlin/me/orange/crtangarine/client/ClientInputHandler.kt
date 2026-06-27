@@ -9,6 +9,7 @@ import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.neoforge.client.event.InputEvent
 import net.neoforged.neoforge.client.event.MovementInputUpdateEvent
 import net.neoforged.neoforge.client.event.RenderGuiEvent
+import net.neoforged.neoforge.client.event.RenderPlayerEvent
 import net.neoforged.neoforge.network.PacketDistributor
 
 object ClientInputHandler {
@@ -18,10 +19,17 @@ object ClientInputHandler {
 
     private val HUD_TEXTURE = ResourceLocation.fromNamespaceAndPath("crtangarine", "textures/gui/camera_hud.png")
 
-    var cameraYaw = 0f
-    var cameraPitch = 0f
     var originalYaw = 0f
     var originalPitch = 0f
+
+    private var tempYaw = 0f
+    private var tempPitch = 0f
+    private var tempYawO = 0f
+    private var tempPitchO = 0f
+    private var tempHeadYaw = 0f
+    private var tempHeadYawO = 0f
+    private var tempBodyYaw = 0f
+    private var tempBodyYawO = 0f
 
     fun startAiming(pos: BlockPos) {
         val mc = Minecraft.getInstance()
@@ -31,19 +39,6 @@ object ClientInputHandler {
             originalState = level.getBlockState(pos)
             level.setBlock(pos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), 3)
 
-            // Read initial camera orientation
-            val cameraBe = level.getBlockEntity(pos) as? me.orange.crtangarine.block.CameraBlockEntity
-            val state = originalState
-            val facing = if (state != null && state.hasProperty(me.orange.crtangarine.block.CameraBlock.FACING)) {
-                state.getValue(me.orange.crtangarine.block.CameraBlock.FACING)
-            } else {
-                net.minecraft.core.Direction.NORTH
-            }
-            val yaw = cameraBe?.yaw ?: facing.toYRot()
-            val pitch = cameraBe?.pitch ?: 0.0f
-
-            cameraYaw = yaw
-            cameraPitch = pitch
             originalYaw = player.yRot
             originalPitch = player.xRot
 
@@ -73,10 +68,14 @@ object ClientInputHandler {
     @SubscribeEvent
     fun onMouseClick(event: InputEvent.MouseButton.Pre) {
         if (isAiming && event.button == 0 && event.action == 1) {
+            val mc = Minecraft.getInstance()
+            val player = mc.player
             val pos = aimingCameraPos
-            if (pos != null) {
-                // Send our accumulated camera angles rather than the frozen player entity angles
-                PacketDistributor.sendToServer(CommitCameraAimPayload(pos, cameraPitch, cameraYaw))
+            if (player != null && pos != null) {
+                val yaw = player.yRot
+                val pitch = player.xRot
+
+                PacketDistributor.sendToServer(CommitCameraAimPayload(pos, pitch, yaw))
 
                 stopAiming()
                 event.isCanceled = true
@@ -97,6 +96,50 @@ object ClientInputHandler {
             input.right = false
             input.jumping = false
             input.shiftKeyDown = false
+        }
+    }
+
+    @SubscribeEvent
+    fun onRenderPlayerPre(event: RenderPlayerEvent.Pre) {
+        val player = event.entity
+        val mc = Minecraft.getInstance()
+        if (isAiming && player == mc.player) {
+            // Save current rotation fields
+            tempYaw = player.yRot
+            tempPitch = player.xRot
+            tempYawO = player.yRotO
+            tempPitchO = player.xRotO
+            tempHeadYaw = player.yHeadRot
+            tempHeadYawO = player.yHeadRotO
+            tempBodyYaw = player.yBodyRot
+            tempBodyYawO = player.yBodyRotO
+
+            // Force rendering look direction to the console's original orientation
+            player.yRot = originalYaw
+            player.xRot = originalPitch
+            player.yRotO = originalYaw
+            player.xRotO = originalPitch
+            player.yHeadRot = originalYaw
+            player.yHeadRotO = originalYaw
+            player.yBodyRot = originalYaw
+            player.yBodyRotO = originalYaw
+        }
+    }
+
+    @SubscribeEvent
+    fun onRenderPlayerPost(event: RenderPlayerEvent.Post) {
+        val player = event.entity
+        val mc = Minecraft.getInstance()
+        if (isAiming && player == mc.player) {
+            // Restore original rotation fields so aiming works smoothly
+            player.yRot = tempYaw
+            player.xRot = tempPitch
+            player.yRotO = tempYawO
+            player.xRotO = tempPitchO
+            player.yHeadRot = tempHeadYaw
+            player.yHeadRotO = tempHeadYawO
+            player.yBodyRot = tempBodyYaw
+            player.yBodyRotO = tempBodyYawO
         }
     }
 
