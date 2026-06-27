@@ -1,0 +1,6 @@
+{
+  "parent": "crtangarine:block/camera_station_base",
+  "textures": {
+    "2": "crtangarine:block/camera_station_screen_on"
+  }
+}
