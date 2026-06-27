@@ -23,7 +23,7 @@ The webserver runs the backend database and serves the CRT browser dashboard.
    * Windows: Double-click `start.bat`.
    * Linux / macOS: Run `./start.sh` in your terminal.
    *(Note: This webserver requires Java 21. If Java is not detected, the startup script will open a link to download it.)*
-4. Open your browser and go to `http://localhost:8080` to access the surveillance matrix dashboard.
+4. Open your web browser and navigate to `localhost:8080` (or the IP address of the server running the webserver) to access the surveillance dashboard.
 
 ### 2. Minecraft Client Setup
 1. Download the latest `crtangarine-mod-*.jar` file from the Releases page.
