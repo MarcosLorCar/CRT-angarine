@@ -4,6 +4,12 @@ A full-stack, real-time surveillance network system that streams live voxel envi
 
 Built with a Kotlin multi-project architecture (Ktor, WebSockets, NeoForge) and a Vite + React + Three.js frontend.
 
+### 🎮 Version Compatibility
+
+| Mod Version | Minecraft Version | Loader / Platform | Java Version | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **`1.0.x`** | `1.21.1` | NeoForge (21.1.234+) | JDK 21 | Active / Stable |
+
 ---
 
 ## System Architecture & Modules
