@@ -55,32 +55,54 @@ jobs:
           cat << 'EOF' > crtangarine-webserver/start.bat
           @echo off
           title CRT-angarine Webserver
+
           echo Checking for Java...
           java -version >nul 2>&1
-          if %errorlevel% neq 0 (
-              echo [ERROR] Java is not installed or not configured in your system environment PATH.
-              echo This server requires Java 21.
-              echo.
-              echo Opening download page for Java 21 (Temurin LTS)...
-              start https://adoptium.net/temurin/releases/?version=21
-              pause
-              exit /b
-          )
+          if errorlevel 1 goto NOJAVA
+
           echo Java found! Starting webserver...
+          if not exist backend.jar goto NOJAR
+
           java -jar backend.jar
           pause
+          exit /b
+
+          :NOJAVA
+          echo [ERROR] Java is not installed or not configured in your system environment PATH.
+          echo This server requires Java 21.
+          echo.
+          echo Opening download page for Java 21 (Temurin LTS)...
+          start https://adoptium.net/temurin/releases/?version=21
+          pause
+          exit /b
+
+          :NOJAR
+          echo [ERROR] backend.jar was not found in this folder!
+          echo Please make sure this batch file is in the same folder as backend.jar.
+          pause
+          exit /b
           EOF
           
           # Create start.sh for Linux/macOS users
           cat << 'EOF' > crtangarine-webserver/start.sh
           #!/bin/bash
+          # Change to the script's directory so it runs correctly regardless of where it is invoked
+          cd "$(dirname "$0")"
+
           echo "Checking for Java..."
           if ! command -v java &> /dev/null; then
               echo "[ERROR] Java is not installed or not in PATH."
               echo "Please install Java 21 to run this server."
               exit 1
           fi
+
           echo "Java found! Starting webserver..."
+          if [ ! -f backend.jar ]; then
+              echo "[ERROR] backend.jar was not found in this folder!"
+              echo "Please make sure this script is in the same folder as backend.jar."
+              exit 1
+          fi
+
           java -jar backend.jar
           EOF
           chmod +x crtangarine-webserver/start.sh
