@@ -18,12 +18,34 @@ object ClientInputHandler {
 
     private val HUD_TEXTURE = ResourceLocation.fromNamespaceAndPath("crtangarine", "textures/gui/camera_hud.png")
 
+    var cameraYaw = 0f
+    var cameraPitch = 0f
+    var originalYaw = 0f
+    var originalPitch = 0f
+
     fun startAiming(pos: BlockPos) {
         val mc = Minecraft.getInstance()
         val level = mc.level
-        if (level != null) {
+        val player = mc.player
+        if (level != null && player != null) {
             originalState = level.getBlockState(pos)
             level.setBlock(pos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), 3)
+
+            // Read initial camera orientation
+            val cameraBe = level.getBlockEntity(pos) as? me.orange.crtangarine.block.CameraBlockEntity
+            val state = originalState
+            val facing = if (state != null && state.hasProperty(me.orange.crtangarine.block.CameraBlock.FACING)) {
+                state.getValue(me.orange.crtangarine.block.CameraBlock.FACING)
+            } else {
+                net.minecraft.core.Direction.NORTH
+            }
+            val yaw = cameraBe?.yaw ?: facing.toYRot()
+            val pitch = cameraBe?.pitch ?: 0.0f
+
+            cameraYaw = yaw
+            cameraPitch = pitch
+            originalYaw = player.yRot
+            originalPitch = player.xRot
 
             // Hide standard HUD elements
             mc.options.hideGui = true
@@ -51,14 +73,10 @@ object ClientInputHandler {
     @SubscribeEvent
     fun onMouseClick(event: InputEvent.MouseButton.Pre) {
         if (isAiming && event.button == 0 && event.action == 1) {
-            val mc = Minecraft.getInstance()
-            val player = mc.player
             val pos = aimingCameraPos
-            if (player != null && pos != null) {
-                val yaw = player.yRot
-                val pitch = player.xRot
-
-                PacketDistributor.sendToServer(CommitCameraAimPayload(pos, pitch, yaw))
+            if (pos != null) {
+                // Send our accumulated camera angles rather than the frozen player entity angles
+                PacketDistributor.sendToServer(CommitCameraAimPayload(pos, cameraPitch, cameraYaw))
 
                 stopAiming()
                 event.isCanceled = true

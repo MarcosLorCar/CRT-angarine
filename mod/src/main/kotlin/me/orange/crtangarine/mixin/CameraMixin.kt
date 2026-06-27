@@ -46,9 +46,24 @@ abstract class CameraMixin {
                 this.position = Vec3(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5)
                 this.blockPosition.set(pos)
 
-                // Override camera rendering angles to match player looking direction
-                this.xRot = player.xRot
-                this.yRot = player.yRot
+                // Calculate mouse look deltas from the fixed original orientation
+                val deltaYaw = player.yRot - me.orange.crtangarine.client.ClientInputHandler.originalYaw
+                val deltaPitch = player.xRot - me.orange.crtangarine.client.ClientInputHandler.originalPitch
+
+                // Accumulate the delta into our separate camera angles
+                me.orange.crtangarine.client.ClientInputHandler.cameraYaw += deltaYaw
+                me.orange.crtangarine.client.ClientInputHandler.cameraPitch = 
+                    (me.orange.crtangarine.client.ClientInputHandler.cameraPitch + deltaPitch).coerceIn(-90f, 90f)
+
+                // Freeze the player model's head and body at the original console orientation
+                player.yRot = me.orange.crtangarine.client.ClientInputHandler.originalYaw
+                player.xRot = me.orange.crtangarine.client.ClientInputHandler.originalPitch
+                player.yRotO = me.orange.crtangarine.client.ClientInputHandler.originalYaw
+                player.xRotO = me.orange.crtangarine.client.ClientInputHandler.originalPitch
+
+                // Force the rendered camera angles to use the accumulated angles
+                this.xRot = me.orange.crtangarine.client.ClientInputHandler.cameraPitch
+                this.yRot = me.orange.crtangarine.client.ClientInputHandler.cameraYaw
             }
         }
     }
