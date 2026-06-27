@@ -12,6 +12,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
 import me.orange.crtangarine.shared.*
+import org.slf4j.LoggerFactory
 
 @Serializable
 data class LoginRequest(val token: String)
@@ -20,6 +21,12 @@ data class LoginRequest(val token: String)
 data class LoginResponse(val success: Boolean, val message: String, val token: String)
 
 fun Application.configureRouting() {
+    val logger = LoggerFactory.getLogger("me.orange.Server")
+    monitor.subscribe(ApplicationStarted) {
+        val port = environment.config.propertyOrNull("ktor.deployment.port")?.getString() ?: "8080"
+        logger.info("CRT-angarine Webserver is ready! Responding at http://localhost:$port")
+    }
+
     routing {
         singlePageApplication {
             useResources = true
