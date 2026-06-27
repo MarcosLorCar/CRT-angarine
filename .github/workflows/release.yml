@@ -44,6 +44,50 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew build --no-daemon
 
+      - name: Package Webserver Zip
+        run: |
+          mkdir crtangarine-webserver
+          
+          # Copy the shadow jar to the folder with a generic name
+          cp backend/build/libs/backend-${{ env.PROJECT_VERSION }}.jar crtangarine-webserver/backend.jar
+          
+          # Create start.bat for Windows users
+          cat << 'EOF' > crtangarine-webserver/start.bat
+          @echo off
+          title CRT-angarine Webserver
+          echo Checking for Java...
+          java -version >nul 2>&1
+          if %errorlevel% neq 0 (
+              echo [ERROR] Java is not installed or not configured in your system environment PATH.
+              echo This server requires Java 21.
+              echo.
+              echo Opening download page for Java 21 (Temurin LTS)...
+              start https://adoptium.net/temurin/releases/?version=21
+              pause
+              exit /b
+          )
+          echo Java found! Starting webserver...
+          java -jar backend.jar
+          pause
+          EOF
+          
+          # Create start.sh for Linux/macOS users
+          cat << 'EOF' > crtangarine-webserver/start.sh
+          #!/bin/bash
+          echo "Checking for Java..."
+          if ! command -v java &> /dev/null; then
+              echo "[ERROR] Java is not installed or not in PATH."
+              echo "Please install Java 21 to run this server."
+              exit 1
+          fi
+          echo "Java found! Starting webserver..."
+          java -jar backend.jar
+          EOF
+          chmod +x crtangarine-webserver/start.sh
+          
+          # Zip the package folder
+          zip -r crtangarine-webserver-v${{ env.PROJECT_VERSION }}.zip crtangarine-webserver
+
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -57,6 +101,7 @@ jobs:
             backend/build/libs/backend-*.jar
             !backend/build/libs/backend-*-plain.jar
             mod/build/libs/crtangarine-mc*.jar
+            crtangarine-webserver-v*.zip
           draft: false
           prerelease: false
         env:
