@@ -97,8 +97,8 @@ object ServerPacketHandler {
                 // Save session
                 CameraAimManager.sessions[player.uuid] = AimSession(pos, originalGameMode, originalPos, originalPitch, originalYaw, originalFlying)
 
-                // Tell client to start aim mode click-intercept
-                PacketDistributor.sendToPlayer(player, StartAimModePayload(pos))
+                // Tell client to start aim mode click-intercept, supplying the true original orientation before teleportation
+                PacketDistributor.sendToPlayer(player, StartAimModePayload(pos, originalYaw, originalPitch))
 
                 player.closeContainer()
             }

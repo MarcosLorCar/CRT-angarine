@@ -8,7 +8,7 @@ object ClientPacketHandler {
         context.enqueueWork {
             runForDist(
                 clientTarget = { {
-                    me.orange.crtangarine.client.ClientInputHandler.startAiming(payload.pos)
+                    me.orange.crtangarine.client.ClientInputHandler.startAiming(payload.pos, payload.originalYaw, payload.originalPitch)
                 } },
                 serverTarget = { { } }
             ).invoke()

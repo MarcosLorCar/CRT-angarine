@@ -31,7 +31,7 @@ object ClientInputHandler {
     private var tempBodyYaw = 0f
     private var tempBodyYawO = 0f
 
-    fun startAiming(pos: BlockPos) {
+    fun startAiming(pos: BlockPos, origYaw: Float, origPitch: Float) {
         val mc = Minecraft.getInstance()
         val level = mc.level
         val player = mc.player
@@ -39,8 +39,8 @@ object ClientInputHandler {
             originalState = level.getBlockState(pos)
             level.setBlock(pos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), 3)
 
-            originalYaw = player.yRot
-            originalPitch = player.xRot
+            originalYaw = origYaw
+            originalPitch = origPitch
 
             // Hide standard HUD elements
             mc.options.hideGui = true

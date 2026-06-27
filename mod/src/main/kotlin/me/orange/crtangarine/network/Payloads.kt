@@ -43,13 +43,22 @@ data class AimCameraPayload(val stationPos: BlockPos, val cameraPos: BlockPos) :
     }
 }
 
-data class StartAimModePayload(val pos: BlockPos) : CustomPacketPayload {
+data class StartAimModePayload(val pos: BlockPos, val originalYaw: Float, val originalPitch: Float) : CustomPacketPayload {
     override fun type(): CustomPacketPayload.Type<StartAimModePayload> = TYPE
     companion object {
         val TYPE = CustomPacketPayload.Type<StartAimModePayload>(ResourceLocation.fromNamespaceAndPath(Crtangarine.ID, "start_aim_mode"))
         val STREAM_CODEC: StreamCodec<FriendlyByteBuf, StartAimModePayload> = StreamCodec.of(
-            { buf, value -> BlockPos.STREAM_CODEC.encode(buf, value.pos) },
-            { buf -> StartAimModePayload(BlockPos.STREAM_CODEC.decode(buf)) }
+            { buf, value -> 
+                BlockPos.STREAM_CODEC.encode(buf, value.pos)
+                buf.writeFloat(value.originalYaw)
+                buf.writeFloat(value.originalPitch)
+            },
+            { buf -> 
+                val pos = BlockPos.STREAM_CODEC.decode(buf)
+                val yaw = buf.readFloat()
+                val pitch = buf.readFloat()
+                StartAimModePayload(pos, yaw, pitch)
+            }
         )
     }
 }
