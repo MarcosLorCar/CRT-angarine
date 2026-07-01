@@ -5,8 +5,8 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import io.ktor.websocket.DefaultWebSocketSession
 import io.ktor.websocket.send
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.encodeToString
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import me.orange.crtangarine.shared.*
 
 data class WebClientSubscription(val cameraId: String, val worldId: String)
@@ -28,6 +28,8 @@ object CameraStreamRegistry {
     // Active web client registry updates sessions (session -> WebRegistrySubscription)
     val webRegistrySessions = ConcurrentHashMap<DefaultWebSocketSession, WebRegistrySubscription>()
 
+    private val gson = Gson()
+
     private fun getStationsForWorld(worldId: String): ConcurrentHashMap<String, StationInfo> {
         return stationsByWorld.computeIfAbsent(worldId) { id ->
             val file = File("data/stations_$id.json")
@@ -35,9 +37,12 @@ object CameraStreamRegistry {
             try {
                 if (file.exists()) {
                     val content = file.readText()
-                    val list = Json.decodeFromString<List<StationInfo>>(content)
-                    for (station in list) {
-                        map[station.pos] = station
+                    val type = object : TypeToken<List<StationInfo>>() {}.type
+                    val list = gson.fromJson<List<StationInfo>>(content, type)
+                    if (list != null) {
+                        for (station in list) {
+                            map[station.pos] = station
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -53,7 +58,7 @@ object CameraStreamRegistry {
         try {
             file.parentFile?.mkdirs()
             val list = map.values.toList()
-            val content = Json.encodeToString(list)
+            val content = gson.toJson(list)
             file.writeText(content)
         } catch (e: Exception) {
             System.err.println("Error saving stations_$worldId.json: ${e.message}")
@@ -72,7 +77,7 @@ object CameraStreamRegistry {
 
     suspend fun broadcastRegistryToWebClients(playerUuid: String, worldId: String) {
         val userCameras = getCamerasForPlayer(playerUuid, worldId)
-        val jsonStr = Json.encodeToString(userCameras)
+        val jsonStr = gson.toJson(userCameras)
         for ((session, sub) in webRegistrySessions) {
             if (sub.playerUuid == playerUuid && sub.worldId == worldId) {
                 try {
@@ -97,6 +102,7 @@ object CameraStreamRegistry {
                         y = cam.y,
                         z = cam.z,
                         isOnline = cam.isOnline,
+                        status = cam.status,
                         stationName = if (station.customName.isNotEmpty()) station.customName else "Station [${station.pos}]"
                     )
                 }
@@ -104,7 +110,7 @@ object CameraStreamRegistry {
     }
 
     suspend fun sendCommandToMod(command: CameraStreamCommand, worldId: String) {
-        val jsonStr = Json.encodeToString(command)
+        val jsonStr = gson.toJson(command)
         for ((session, id) in modSessions) {
             if (id == worldId) {
                 try {
@@ -125,7 +131,7 @@ object CameraStreamRegistry {
                     cameraId = cameraId,
                     isActive = true
                 )
-                val jsonStr = Json.encodeToString(command)
+                val jsonStr = gson.toJson(command)
                 try {
                     session.send(jsonStr)
                 } catch (e: Exception) {

@@ -45,24 +45,24 @@ backend/.env
 Ini, TOML
 
 # ==========================================
-# 3. Minecraft Mod (Java / Gradle / Fabric)
+# 3. Minecraft Mod (Java / Gradle / NeoForge)
 # ==========================================
 # Gradle lifecycle files
-mod/.gradle/
-mod/build/
-mod/out/
+mod-*/.gradle/
+mod-*/build/
+mod-*/out/
 
 # Minecraft run directories (Where the test server/client launch)
-mod/run/
-mod/runServer/
-mod/runClient/
-mod/.mixin.out/
+mod-*/run/
+mod-*/runServer/
+mod-*/runClient/
+mod-*/.mixin.out/
 
-# Loom caching
-mod/.gradle/loom-cache/
+# Loom / NeoForm caching
+mod-*/.gradle/loom-cache/
 
 # Generated production jars
-mod/build/libs/
+mod-*/build/libs/
 *.jar
 
 # ==========================================
@@ -78,8 +78,8 @@ mod/build/libs/
 *.iml
 *.ipr
 *.iws
-mod/.idea/
-mod/*.iml
+mod-*/.idea/
+mod-*/*.iml
 */.junie
 
 # Crash logs

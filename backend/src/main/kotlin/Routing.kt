@@ -9,9 +9,10 @@ import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.encodeToString
+import com.google.gson.Gson
+import com.google.gson.JsonParser
 import io.ktor.server.application.ServerReady
+import java.io.File
 import me.orange.crtangarine.shared.*
 import org.slf4j.LoggerFactory
 
@@ -23,16 +24,33 @@ data class LoginResponse(val success: Boolean, val message: String, val token: S
 
 fun Application.configureRouting() {
     val logger = LoggerFactory.getLogger("me.orange.Server")
+    val gson = Gson()
     monitor.subscribe(ServerReady) { env ->
         val port = env.config.propertyOrNull("ktor.deployment.port")?.getString() ?: "8080"
         logger.info("CRT-angarine Webserver is ready! Responding at http://localhost:$port")
     }
 
     routing {
-        singlePageApplication {
-            useResources = true
-            filesPath = "static"
-            defaultPage = "index.html"
+        val paths = listOf(
+            File("webapp/dist"),
+            File("../webapp/dist"),
+            File("../../webapp/dist")
+        )
+        val staticDir = paths.firstOrNull { it.exists() && it.isDirectory }
+        if (staticDir != null) {
+            logger.info("Serving static frontend files from local filesystem: ${staticDir.absolutePath}")
+            singlePageApplication {
+                useResources = false
+                filesPath = staticDir.absolutePath
+                defaultPage = "index.html"
+            }
+        } else {
+            logger.info("Serving static frontend files from packaged classpath resources (static/)")
+            singlePageApplication {
+                useResources = true
+                filesPath = "static"
+                defaultPage = "index.html"
+            }
         }
         
         post("/api/login") {
@@ -73,7 +91,7 @@ fun Application.configureRouting() {
                 return@get
             }
             val userCameras = CameraStreamRegistry.getCamerasForPlayer(playerUuid, worldId)
-            call.respondText(Json.encodeToString(userCameras), ContentType.Application.Json)
+            call.respondText(gson.toJson(userCameras), ContentType.Application.Json)
         }
 
         webSocket("/api/mod/stream") {
@@ -90,19 +108,29 @@ fun Application.configureRouting() {
                     if (frame is Frame.Text) {
                         val text = frame.readText()
                         try {
-                            val msg = Json.decodeFromString<ModMessage>(text)
-                            when (msg) {
-                                is RegistryUpdateMessage -> {
-                                    CameraStreamRegistry.updateStations(msg.data.stations, worldId)
-                                    for (station in msg.data.stations) {
-                                        CameraStreamRegistry.broadcastRegistryToWebClients(station.ownerUuid, worldId)
-                                    }
+                            val jsonObject = JsonParser.parseString(text).asJsonObject
+                            val type = jsonObject.get("type")?.asString
+                            
+                            // Map the message types. We check both fully-qualified package names (sent by the mod)
+                            // and shorthands. Fully-qualified names are forwarded downstream to preserve compatibility 
+                            // with the Three.js viewport event handlers in the web client (Viewport.tsx).
+                            val isRegistryUpdate = type == "me.orange.crtangarine.shared.RegistryUpdateMessage" || type == "registry_update"
+                            val isFrustumPayload = type == "me.orange.crtangarine.shared.FrustumPayloadMessage" || type == "frustum_payload"
+                            val isEntityStream = type == "me.orange.crtangarine.shared.EntityStreamMessage" || type == "entity_stream"
+                            
+                            if (isRegistryUpdate) {
+                                val dataObj = jsonObject.getAsJsonObject("data")
+                                val stationsArray = gson.fromJson(dataObj.getAsJsonArray("stations"), Array<StationInfo>::class.java)
+                                val stations = stationsArray.toList()
+                                CameraStreamRegistry.updateStations(stations, worldId)
+                                for (station in stations) {
+                                    CameraStreamRegistry.broadcastRegistryToWebClients(station.ownerUuid, worldId)
                                 }
-                                is FrustumPayloadMessage -> {
-                                    CameraStreamRegistry.forwardToWebClients(msg.data.cameraId, worldId, text)
-                                }
-                                is EntityStreamMessage -> {
-                                    CameraStreamRegistry.forwardToWebClients(msg.data.cameraId, worldId, text)
+                            } else if (isFrustumPayload || isEntityStream) {
+                                val dataObj = jsonObject.getAsJsonObject("data")
+                                val cameraId = dataObj.get("cameraId")?.asString
+                                if (cameraId != null) {
+                                    CameraStreamRegistry.forwardToWebClients(cameraId, worldId, text)
                                 }
                             }
                         } catch (e: Exception) {
@@ -156,8 +184,8 @@ fun Application.configureRouting() {
 
             CameraStreamRegistry.webRegistrySessions[this] = WebRegistrySubscription(playerUuid, worldId)
             // Send initial camera list immediately upon connection
-            val userCameras = CameraStreamRegistry.getCamerasForPlayer(playerUuid, worldId)
-            send(Json.encodeToString(userCameras))
+             val userCameras = CameraStreamRegistry.getCamerasForPlayer(playerUuid, worldId)
+             send(gson.toJson(userCameras))
 
             try {
                 for (frame in incoming) {

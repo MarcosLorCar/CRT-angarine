@@ -29,11 +29,13 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
 dependencies {
     val ktor_version = "3.0.1"
     implementation(project(":shared"))
+    implementation("com.google.code.gson:gson:2.10.1")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor_version")
     implementation("io.ktor:ktor-server-config-yaml:$ktor_version")
     implementation("io.ktor:ktor-server-content-negotiation:$ktor_version")
     implementation("io.ktor:ktor-server-core:$ktor_version")
     implementation("io.ktor:ktor-server-netty:$ktor_version")
+    implementation("io.ktor:ktor-server-cio:$ktor_version")
     implementation("io.ktor:ktor-server-websockets:$ktor_version")
     implementation(libs.logback.classic)
 

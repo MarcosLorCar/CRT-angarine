@@ -804,14 +804,17 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
       ctx.fillRect(0, scanLineY, width, 4);
 
       // Draw warning message
-      ctx.fillStyle = '#ff2222';
+      const isUnloaded = activeCamera?.status === 'UNLOADED';
+      ctx.fillStyle = isUnloaded ? '#ffaa00' : '#ff2222';
       ctx.font = 'bold 18px "Share Tech Mono", monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       
+      const statusText = isUnloaded ? '[ CHUNK UNLOADED ]' : '[ SIGNAL LOST / OFFLINE ]';
+
       // Flashing offline text
       if (Math.floor(Date.now() / 500) % 2 === 0) {
-        ctx.fillText('[ SIGNAL LOST / OFFLINE ]', width / 2, height / 2);
+        ctx.fillText(statusText, width / 2, height / 2);
       }
 
       animId = requestAnimationFrame(drawNoise);

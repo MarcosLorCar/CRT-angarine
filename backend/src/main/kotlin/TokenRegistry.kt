@@ -1,20 +1,18 @@
 package me.orange
 
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.decodeFromString
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import me.orange.crtangarine.shared.AuthTokenPacket
 import me.orange.crtangarine.shared.CryptoUtils
-import kotlinx.serialization.Serializable
 
-@Serializable
 data class TokenMetadata(val playerUuid: String, val worldId: String)
 
 object TokenRegistry {
     private val file = File("data/auth_tokens.json")
     private val tokenMetadataMap = ConcurrentHashMap<String, TokenMetadata>()
+    private val gson = Gson()
 
     init {
         load()
@@ -25,9 +23,12 @@ object TokenRegistry {
         try {
             if (file.exists()) {
                 val content = file.readText()
-                val map = Json.decodeFromString<Map<String, TokenMetadata>>(content)
+                val type = object : TypeToken<Map<String, TokenMetadata>>() {}.type
+                val map = gson.fromJson<Map<String, TokenMetadata>>(content, type)
                 tokenMetadataMap.clear()
-                tokenMetadataMap.putAll(map)
+                if (map != null) {
+                    tokenMetadataMap.putAll(map)
+                }
             }
         } catch (e: Exception) {
             System.err.println("Error loading auth_tokens.json: ${e.message}")
@@ -39,7 +40,7 @@ object TokenRegistry {
         try {
             file.parentFile?.mkdirs()
             val map = tokenMetadataMap.toMap()
-            val content = Json.encodeToString(map)
+            val content = gson.toJson(map)
             file.writeText(content)
         } catch (e: Exception) {
             System.err.println("Error saving auth_tokens.json: ${e.message}")

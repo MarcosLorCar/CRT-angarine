@@ -19,6 +19,8 @@ dependencyResolutionManagement {
 
 rootProject.name = "CRTangarine"
 
-include("mod")
+include("mod-core")
+include("mod-client")
+include("mod-standalone")
 include("shared")
 include("backend")
