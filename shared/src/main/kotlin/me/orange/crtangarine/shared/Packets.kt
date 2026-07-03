@@ -4,22 +4,29 @@ import kotlinx.serialization.Serializable
 import java.util.Base64
 
 object CryptoUtils {
-    private const val KEY = "CRTangarineSecret"
+    private const val ALGORITHM = "AES"
+    private val KEY_BYTES = "CRTangarineSecr1".toByteArray(Charsets.UTF_8)
 
     fun encrypt(plainText: String): String {
-        val encrypted = plainText.toByteArray().mapIndexed { index, byte ->
-            (byte.toInt() xor KEY[index % KEY.length].code).toByte()
-        }.toByteArray()
-        return Base64.getEncoder().encodeToString(encrypted)
+        return try {
+            val keySpec = javax.crypto.spec.SecretKeySpec(KEY_BYTES, ALGORITHM)
+            val cipher = javax.crypto.Cipher.getInstance(ALGORITHM)
+            cipher.init(javax.crypto.Cipher.ENCRYPT_MODE, keySpec)
+            val encrypted = cipher.doFinal(plainText.toByteArray(Charsets.UTF_8))
+            Base64.getEncoder().encodeToString(encrypted)
+        } catch (e: Exception) {
+            ""
+        }
     }
 
     fun decrypt(encryptedText: String): String {
         return try {
+            val keySpec = javax.crypto.spec.SecretKeySpec(KEY_BYTES, ALGORITHM)
+            val cipher = javax.crypto.Cipher.getInstance(ALGORITHM)
+            cipher.init(javax.crypto.Cipher.DECRYPT_MODE, keySpec)
             val decoded = Base64.getDecoder().decode(encryptedText)
-            val decrypted = decoded.mapIndexed { index, byte ->
-                (byte.toInt() xor KEY[index % KEY.length].code).toByte()
-            }.toByteArray()
-            String(decrypted)
+            val decrypted = cipher.doFinal(decoded)
+            String(decrypted, Charsets.UTF_8)
         } catch (e: Exception) {
             ""
         }
@@ -32,7 +39,8 @@ data class AuthTokenPacket(
     val playerUuid: String,
     val encryptedToken: String,
     val assignedStations: List<String>,
-    val worldId: String = "global"
+    val worldId: String = "global",
+    val playerName: String = ""
 )
 
 @Serializable

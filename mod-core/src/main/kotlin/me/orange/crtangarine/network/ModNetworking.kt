@@ -62,5 +62,12 @@ object ModNetworking {
             OpenKeycardScreenPayload.STREAM_CODEC,
             ClientPacketHandler::handleOpenKeycardScreen
         )
+
+        // Set Keycard Password
+        registrar.playToServer(
+            SetKeycardPasswordPayload.TYPE,
+            SetKeycardPasswordPayload.STREAM_CODEC,
+            ServerPacketHandler::handleSetKeycardPassword
+        )
     }
 }

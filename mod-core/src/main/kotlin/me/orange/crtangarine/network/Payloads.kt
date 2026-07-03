@@ -149,3 +149,14 @@ data class OpenKeycardScreenPayload(val token: String) : CustomPacketPayload {
         )
     }
 }
+
+data class SetKeycardPasswordPayload(val password: String) : CustomPacketPayload {
+    override fun type(): CustomPacketPayload.Type<SetKeycardPasswordPayload> = TYPE
+    companion object {
+        val TYPE = CustomPacketPayload.Type<SetKeycardPasswordPayload>(ResourceLocation.fromNamespaceAndPath(Crtangarine.ID, "set_keycard_password"))
+        val STREAM_CODEC: StreamCodec<FriendlyByteBuf, SetKeycardPasswordPayload> = StreamCodec.of(
+            { buf, value -> buf.writeUtf(value.password) },
+            { buf -> SetKeycardPasswordPayload(buf.readUtf()) }
+        )
+    }
+}

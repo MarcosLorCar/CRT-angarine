@@ -127,6 +127,17 @@ class CameraBlock(properties: Properties) : Block(properties), EntityBlock {
             return InteractionResult.FAIL
         }
 
+        // We are attempting to link! Let's check the conditions.
+        // If they fail, we must clear the linking tags to stop the glow/linking mode.
+        fun failLink(message: String, actionBar: Boolean = true): InteractionResult {
+            tag.remove("StationX")
+            tag.remove("StationY")
+            tag.remove("StationZ")
+            stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag))
+            player.displayClientMessage(Component.literal(message), actionBar)
+            return InteractionResult.FAIL
+        }
+
         val sx = tag.getInt("StationX")
         val sy = tag.getInt("StationY")
         val sz = tag.getInt("StationZ")
@@ -134,13 +145,11 @@ class CameraBlock(properties: Properties) : Block(properties), EntityBlock {
         val stationBe = level.getBlockEntity(stationPos) as? CameraStationBlockEntity
 
         if (stationBe == null) {
-            player.displayClientMessage(Component.literal("Error: Linked station at [$sx, $sy, $sz] not found!"), true)
-            return InteractionResult.FAIL
+            return failLink("Error: Linked station at [$sx, $sy, $sz] not found!")
         }
 
         if (stationBe.ownerUuid != player.uuid.toString()) {
-            player.displayClientMessage(Component.literal("Error: You do not own the linked station!"), true)
-            return InteractionResult.FAIL
+            return failLink("Error: You do not own the linked station!")
         }
 
         // Distance Check
@@ -149,23 +158,17 @@ class CameraBlock(properties: Properties) : Block(properties), EntityBlock {
         if (distance > maxDistance) {
             val formattedDistance = String.format(java.util.Locale.US, "%.1f", distance)
             val formattedMax = String.format(java.util.Locale.US, "%.1f", maxDistance)
-            player.displayClientMessage(
-                Component.literal("Error: Camera is too far from the station! (Distance: $formattedDistance, Max Range: $formattedMax)"),
-                false
-            )
-            return InteractionResult.FAIL
+            return failLink("Error: Camera is too far from the station! (Distance: $formattedDistance, Max Range: $formattedMax)", false)
         }
 
         val cameraBe = level.getBlockEntity(pos) as? CameraBlockEntity
 
         if (stationBe.linkedCameras.contains(pos) && cameraBe != null && cameraBe.linkedStationPos == stationPos) {
-            player.displayClientMessage(Component.literal("Camera is already linked to this station!"), true)
-            return InteractionResult.CONSUME
+            return failLink("Camera is already linked to this station!")
         }
 
         if (stationBe.linkedCameras.size >= 3 && !stationBe.linkedCameras.contains(pos)) {
-            player.displayClientMessage(Component.literal("Error: This station already has 3 linked cameras!"), true)
-            return InteractionResult.FAIL
+            return failLink("Error: This station already has 3 linked cameras!")
         }
 
         if (cameraBe != null) {
@@ -180,6 +183,13 @@ class CameraBlock(properties: Properties) : Block(properties), EntityBlock {
         stationBe.setChanged()
         level.sendBlockUpdated(stationPos, stationBe.blockState, stationBe.blockState, 3)
         CameraStationRegistry.triggerUpdate()
+
+        // Clear station link coords from keycard to stop the glow and end linking mode
+        tag.remove("StationX")
+        tag.remove("StationY")
+        tag.remove("StationZ")
+        stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag))
+
         player.displayClientMessage(Component.literal("Camera successfully linked to Station!"), true)
         return InteractionResult.SUCCESS
     }

@@ -7,26 +7,82 @@ import './App.css'
 
 function App() {
   const [token, setToken] = useState<string | null>(() => {
-    const params = new URLSearchParams(window.location.search);
-    const urlToken = params.get('token');
-    if (urlToken) {
-      localStorage.setItem('auth_token', urlToken);
-      // Clean up URL parameters so it doesn't linger in the address bar
-      window.history.replaceState({}, document.title, window.location.pathname);
-      return urlToken;
-    }
     return localStorage.getItem('auth_token');
   })
-  const [loginInput, setLoginInput] = useState('')
+  const [loginUsername, setLoginUsername] = useState('')
+  const [loginPassword, setLoginPassword] = useState('')
   const [loginError, setLoginError] = useState('')
   const [isLoggingIn, setIsLoggingIn] = useState(false)
+
+  // URL Auto-login parameter check on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get('token');
+    const urlUsername = params.get('username');
+    if (urlToken) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+      handleLogin(undefined, urlUsername || '', urlToken);
+    }
+  }, []);
   
   const [cameras, setCameras] = useState<CameraData[]>([])
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [activeCameraId, setActiveCameraId] = useState<string | null>(() => {
     return localStorage.getItem('active_camera_id');
   })
   
   const activeCameraIdRef = useRef(activeCameraId)
+
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const toggleFullscreen = async () => {
+    const elem = document.documentElement;
+    try {
+      if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
+        if (elem.requestFullscreen) {
+          await elem.requestFullscreen();
+        } else if ((elem as any).webkitRequestFullscreen) {
+          await (elem as any).webkitRequestFullscreen();
+        }
+        setIsFullscreen(true);
+        if (window.screen && window.screen.orientation && 'lock' in window.screen.orientation) {
+          await window.screen.orientation.lock('landscape').catch(err => {
+            console.warn('Orientation lock failed:', err);
+          });
+        }
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if ((document as any).webkitExitFullscreen) {
+          await (document as any).webkitExitFullscreen();
+        }
+        setIsFullscreen(false);
+        if (window.screen && window.screen.orientation && 'unlock' in window.screen.orientation) {
+          window.screen.orientation.unlock();
+        }
+      }
+    } catch (err) {
+      console.error('Fullscreen toggle error:', err);
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isCurrentlyFullscreen = !!(document.fullscreenElement || (document as any).webkitFullscreenElement);
+      setIsFullscreen(isCurrentlyFullscreen);
+      if (!isCurrentlyFullscreen && window.screen && window.screen.orientation && 'unlock' in window.screen.orientation) {
+        window.screen.orientation.unlock();
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
   useEffect(() => {
     if (activeCameraId) {
       localStorage.setItem('active_camera_id', activeCameraId);
@@ -109,26 +165,39 @@ function App() {
   }, [token])
 
   // Login handler
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!loginInput.trim()) return;
+  const handleLogin = async (e?: React.FormEvent, overrideUsername?: string, overrideToken?: string) => {
+    if (e) e.preventDefault();
+    const u = overrideUsername !== undefined ? overrideUsername : loginUsername;
+    const p = overrideToken !== undefined ? overrideToken : loginPassword;
+    
+    if (!p.trim()) return;
     setIsLoggingIn(true);
     setLoginError('');
     
     try {
+      const payload: any = {};
+      if (u.trim()) {
+        payload.username = u.trim();
+        payload.password = p.trim();
+      } else {
+        payload.token = p.trim();
+      }
+
       const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: loginInput })
+        body: JSON.stringify(payload)
       });
+      const data = await res.json();
       if (res.ok) {
-        setToken(loginInput);
-        localStorage.setItem('auth_token', loginInput);
+        const sessionToken = data.token;
+        setToken(sessionToken);
+        localStorage.setItem('auth_token', sessionToken);
       } else {
-        setLoginError('Authentication failed.');
+        setLoginError(data.message || 'Authentication failed. Check your credentials.');
       }
     } catch (err) {
-      setLoginError('Could not reach the server.');
+      setLoginError('Server is offline or unreachable. Please check your network connection.');
     } finally {
       setIsLoggingIn(false);
     }
@@ -152,8 +221,10 @@ function App() {
         <div className="scanlines-overlay"></div>
         <div className="vignette-overlay"></div>
         <Login
-          loginInput={loginInput}
-          setLoginInput={setLoginInput}
+          loginUsername={loginUsername}
+          setLoginUsername={setLoginUsername}
+          loginPassword={loginPassword}
+          setLoginPassword={setLoginPassword}
           loginError={loginError}
           isLoggingIn={isLoggingIn}
           handleLogin={handleLogin}
@@ -163,15 +234,52 @@ function App() {
   }
 
   return (
-    <div className="dashboard-wrapper">
+    <div className={`dashboard-wrapper ${isFullscreen ? 'app-fullscreen' : ''} ${isSidebarOpen ? 'menu-open' : ''}`}>
       <div className="scanlines-overlay"></div>
       <div className="vignette-overlay"></div>
       
+      {isSidebarOpen && (
+        <div className="sidebar-backdrop" onClick={() => setIsSidebarOpen(false)}></div>
+      )}
+
+      <button onClick={() => setIsSidebarOpen(true)} className="floating-menu-btn" aria-label="Open Menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+
       <header>
-        <h1>CRT-angarine Matrix</h1>
+        <div className="header-title-group">
+          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="sidebar-toggle-btn" aria-label="Toggle Menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+          <h1>CRT-angarine Matrix</h1>
+        </div>
         <div className="header-controls">
           <span className="auth-status">LINK SECURE</span>
-          <button onClick={handleLogout} className="logout-btn">DISCONNECT</button>
+          <button onClick={toggleFullscreen} className="fullscreen-btn" title="Toggle Fullscreen">
+            {isFullscreen ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 10h6V4" />
+                <path d="M20 10h-6V4" />
+                <path d="M4 14h6v6" />
+                <path d="M20 14h-6v6" />
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+                <path d="M16 3h3a2 2 0 0 1 2 2v3" />
+                <path d="M8 21H5a2 2 0 0 1-2-2v-3" />
+                <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+              </svg>
+            )}
+          </button>
         </div>
       </header>
       
@@ -180,6 +288,9 @@ function App() {
           cameras={cameras}
           activeCameraId={activeCameraId}
           setActiveCameraId={setActiveCameraId}
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          onLogout={handleLogout}
         />
         <Viewport
           token={token}

@@ -170,6 +170,19 @@ object ServerPacketHandler {
         }
     }
 
+    fun handleSetKeycardPassword(payload: SetKeycardPasswordPayload, context: IPayloadContext) {
+        context.enqueueWork {
+            val player = context.player()
+            val stack = player.getItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND)
+            if (stack.item is me.orange.crtangarine.item.SecurityKeycardItem) {
+                val item = stack.item as me.orange.crtangarine.item.SecurityKeycardItem
+                val password = payload.password
+                val worldId = me.orange.crtangarine.world.WorldIdSavedData.get(player.level() as net.minecraft.server.level.ServerLevel).worldId
+                item.activateWithPassword(stack, player, password, worldId)
+            }
+        }
+    }
+
     fun handleRenameCamera(payload: RenameCameraPayload, context: IPayloadContext) {
         // Reserved for future camera rename implementation
     }

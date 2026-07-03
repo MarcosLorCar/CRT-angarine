@@ -30,6 +30,7 @@ body {
   position: relative;
   width: 100vw;
   height: 100vh;
+  height: 100svh;
   display: flex;
   flex-direction: column;
   background-color: var(--term-bg);
@@ -74,6 +75,7 @@ body {
 .login-container {
   display: flex;
   height: 100vh;
+  height: 100svh;
   width: 100vw;
   align-items: center;
   justify-content: center;
@@ -190,7 +192,7 @@ header h1 {
   gap: 1.5rem;
 }
 
-.audio-toggle-btn, .logout-btn {
+.audio-toggle-btn, .logout-btn, .fullscreen-btn {
   background-color: transparent;
   color: var(--term-green);
   border: 1px solid var(--term-border);
@@ -201,9 +203,12 @@ header h1 {
   font-size: 0.9rem;
   text-transform: uppercase;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.audio-toggle-btn:hover, .logout-btn:hover {
+.audio-toggle-btn:hover, .logout-btn:hover, .fullscreen-btn:hover {
   border-color: var(--term-green);
   background-color: rgba(51, 255, 51, 0.1);
   box-shadow: 0 0 8px var(--term-green-glow);
@@ -510,3 +515,417 @@ header h1 {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--term-green);
 }
+
+/* Sidebar Toggle Buttons and Responsive Controls */
+.header-title-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.sidebar-toggle-btn {
+  display: none;
+  background-color: transparent;
+  color: var(--term-green);
+  border: none;
+  padding: 0.4rem;
+  border-radius: 4px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.sidebar-toggle-btn:hover {
+  border-color: var(--term-green);
+  background-color: rgba(51, 255, 51, 0.1);
+  box-shadow: 0 0 8px var(--term-green-glow);
+}
+
+.sidebar-backdrop {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+  z-index: 95;
+  transition: opacity 0.3s;
+}
+
+.sidebar-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--term-border);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+}
+
+.sidebar-header-row h2 {
+  border-bottom: none !important;
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.sidebar-close-btn {
+  display: none;
+  background: transparent;
+  color: var(--term-red);
+  border: none;
+  font-family: inherit;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0.2rem 0.5rem;
+  transition: color 0.2s;
+}
+
+.sidebar-close-btn:hover {
+  color: #ff6666;
+  text-shadow: 0 0 5px var(--term-red);
+}
+
+/* Fullscreen Mode layout adjust */
+.feed-viewer-panel:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  background-color: #000;
+}
+
+.feed-viewer-panel:fullscreen .canvas-container {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Safe Area Insets for Mobile (Notch support) */
+body {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Responsive Media Queries */
+@media (max-width: 768px) {
+  .sidebar-toggle-btn {
+    display: flex;
+  }
+
+  .sidebar-backdrop {
+    display: block;
+  }
+
+  .sidebar-close-btn {
+    display: block;
+  }
+  
+  .camera-list-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 290px;
+    z-index: 999;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
+    box-shadow: 5px 0 15px rgba(0, 0, 0, 0.7);
+    border-right: 2px solid var(--term-green);
+    background-color: var(--term-bg-panel);
+  }
+  
+  .camera-list-panel.open {
+    transform: translateX(0);
+  }
+  
+  header h1 {
+    font-size: 1.2rem;
+  }
+  
+  .hud-panel-topright {
+    top: 1rem;
+    right: 1rem;
+    font-size: 0.8rem;
+    min-width: 180px;
+    padding: 0.5rem 0.8rem;
+  }
+  
+  .info-toggle-btn {
+    top: auto;
+    bottom: 4.5rem;
+    right: 1rem;
+  }
+
+}
+
+@media (max-width: 480px) {
+  header {
+    padding: 0.6rem 0.8rem;
+  }
+  
+  header h1 {
+    display: none; /* Hide long title text to prioritize layout space */
+  }
+  
+  .header-controls {
+    gap: 0.6rem;
+  }
+  
+  .logout-btn, .fullscreen-btn {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+  }
+  
+  .auth-status {
+    font-size: 0.8rem;
+  }
+  
+  .login-form {
+    padding: 1.5rem;
+    max-width: 90%;
+    margin: 0 auto;
+    gap: 1.2rem;
+  }
+  
+  .login-form h2 {
+    font-size: 1.6rem;
+  }
+  
+  .control-bar {
+    flex-direction: row; /* Keep flex-direction row but optimize spacing */
+    padding: 0.6rem 0.8rem;
+  }
+  
+  .legend-panel {
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+  
+  .legend-color {
+    width: 8px;
+    height: 8px;
+  }
+}
+
+/* Sidebar Content & Footer Sticky Layout */
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+}
+
+.sidebar-footer {
+  border-top: 1px solid var(--term-border);
+  padding-top: 1rem;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  padding-left: calc(0.5rem + env(safe-area-inset-left, 0px));
+  padding-right: calc(0.5rem + env(safe-area-inset-right, 0px));
+  display: flex;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.sidebar-footer .logout-btn {
+  width: 100%;
+}
+
+/* Floating Menu Button (hidden by default) */
+.floating-menu-btn {
+  display: none;
+}
+
+/* Landscape Overrides */
+@media (orientation: landscape) and (max-height: 550px) {
+  .floating-menu-btn {
+    display: flex;
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 80;
+    background-color: rgba(5, 12, 5, 0.85);
+    border: 1px solid var(--term-border);
+    color: var(--term-green);
+    padding: 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 0 8px var(--term-green-glow);
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  
+  .floating-menu-btn:hover {
+    background-color: rgba(51, 255, 51, 0.15);
+    border-color: var(--term-green);
+  }
+
+  header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50px;
+    z-index: 105;
+    transform: translateY(-100%);
+    transition: transform 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
+    background-color: rgba(5, 12, 5, 0.95);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.8);
+    padding-left: calc(1.5rem + env(safe-area-inset-left, 0px));
+    padding-right: calc(1.5rem + env(safe-area-inset-right, 0px));
+  }
+
+  .menu-open header {
+    transform: translateY(0);
+  }
+
+  .sidebar-toggle-btn {
+    display: flex !important;
+  }
+
+  /* Make Sidebar act as a Drawer */
+  .camera-list-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 290px;
+    height: 100svh;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
+    z-index: 110;
+    background-color: rgba(4, 10, 4, 0.98);
+    box-shadow: 5px 0 15px rgba(0, 0, 0, 0.8);
+    border-right: 2px solid var(--term-green);
+    padding-left: calc(1rem + env(safe-area-inset-left, 0px)) !important;
+    padding-right: calc(1rem + env(safe-area-inset-right, 0px)) !important;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px)) !important;
+    box-sizing: border-box;
+  }
+
+  .camera-list-panel.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-backdrop {
+    display: block !important;
+    z-index: 95;
+  }
+
+  .sidebar-close-btn {
+    display: block !important;
+  }
+
+  .sidebar-footer {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* Force Main Viewport to consume entire height */
+  .dashboard-main {
+    height: 100svh;
+    margin-top: 0 !important;
+  }
+
+  .control-bar {
+    padding-bottom: calc(0.8rem + env(safe-area-inset-bottom, 0px)) !important;
+    padding-left: calc(1.5rem + env(safe-area-inset-left, 0px)) !important;
+    padding-right: calc(1.5rem + env(safe-area-inset-right, 0px)) !important;
+  }
+}
+
+/* Fullscreen Class Overrides */
+.app-fullscreen .floating-menu-btn {
+  display: flex;
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 80;
+  background-color: rgba(5, 12, 5, 0.85);
+  border: 1px solid var(--term-border);
+  color: var(--term-green);
+  padding: 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  box-shadow: 0 0 8px var(--term-green-glow);
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.app-fullscreen .floating-menu-btn:hover {
+  background-color: rgba(51, 255, 51, 0.15);
+  border-color: var(--term-green);
+}
+
+.app-fullscreen header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50px;
+  z-index: 105;
+  transform: translateY(-100%);
+  transition: transform 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
+  background-color: rgba(5, 12, 5, 0.95);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.8);
+  padding-left: calc(1.5rem + env(safe-area-inset-left, 0px));
+  padding-right: calc(1.5rem + env(safe-area-inset-right, 0px));
+}
+
+.app-fullscreen.menu-open header {
+  transform: translateY(0);
+}
+
+.app-fullscreen .sidebar-toggle-btn {
+  display: flex !important;
+}
+
+.app-fullscreen .camera-list-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 290px;
+  height: 100svh;
+  transform: translateX(-100%);
+  transition: transform 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
+  z-index: 110;
+  background-color: rgba(4, 10, 4, 0.98);
+  box-shadow: 5px 0 15px rgba(0, 0, 0, 0.8);
+  border-right: 2px solid var(--term-green);
+  padding-left: calc(1rem + env(safe-area-inset-left, 0px)) !important;
+  padding-right: calc(1rem + env(safe-area-inset-right, 0px)) !important;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px)) !important;
+  box-sizing: border-box;
+}
+
+.app-fullscreen .camera-list-panel.open {
+  transform: translateX(0);
+}
+
+.app-fullscreen .sidebar-backdrop {
+  display: block !important;
+  z-index: 95;
+}
+
+.app-fullscreen .sidebar-close-btn {
+  display: block !important;
+}
+
+.app-fullscreen .sidebar-footer {
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+.app-fullscreen .dashboard-main {
+  height: 100svh;
+  margin-top: 0 !important;
+}
+
+.app-fullscreen .control-bar {
+  padding-bottom: calc(0.8rem + env(safe-area-inset-bottom, 0px)) !important;
+  padding-left: calc(1.5rem + env(safe-area-inset-left, 0px)) !important;
+  padding-right: calc(1.5rem + env(safe-area-inset-right, 0px)) !important;
+}
+

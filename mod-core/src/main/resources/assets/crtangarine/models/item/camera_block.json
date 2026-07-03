@@ -1,5 +1,5 @@
 {
-  "parent": "crtangarine:block/security_camera_body",
+  "parent": "crtangarine:block/security_camera_combined",
   "display": {
     "thirdperson_righthand": {
       "rotation": [75, 45, 0],
@@ -27,9 +27,9 @@
       "scale": [0.25, 0.25, 0.25]
     },
     "gui": {
-      "rotation": [30, 135, 0],
+      "rotation": [30, 225, 0],
       "translation": [0, 0, 0],
-      "scale": [0.85, 0.85, 0.85]
+      "scale": [0.625, 0.625, 0.625]
     },
     "fixed": {
       "rotation": [0, 180, 0],

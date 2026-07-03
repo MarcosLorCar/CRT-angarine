@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { type CameraData, type BlockData, type EntityData } from '../shared-types';
 
@@ -69,10 +69,8 @@ const crtFragmentShader = `
 `;
 
 export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
-  const [blocksStreamed, setBlocksStreamed] = useState(0);
-  const [activeEntitiesCount, setActiveEntitiesCount] = useState(0);
-  const [latency, setLatency] = useState(0);
-  const [isInfoOpen, setIsInfoOpen] = useState(false);
+
+
 
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -103,20 +101,12 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
   const ringMatsRef = useRef<Record<string, THREE.MeshBasicMaterial> | null>(null);
   const lineMatRef = useRef<THREE.LineBasicMaterial | null>(null);
 
-  // Performance-optimized HUD update refs (avoids React re-renders when closed)
-  const isInfoOpenRef = useRef(false);
+
   const blocksStreamedRef = useRef(0);
   const activeEntitiesCountRef = useRef(0);
   const latencyRef = useRef(0);
 
-  useEffect(() => {
-    isInfoOpenRef.current = isInfoOpen;
-    if (isInfoOpen) {
-      setBlocksStreamed(blocksStreamedRef.current);
-      setActiveEntitiesCount(activeEntitiesCountRef.current);
-      setLatency(latencyRef.current);
-    }
-  }, [isInfoOpen]);
+
 
   // Time and Shader references
   const uTimeRef = useRef({ value: 0.0 });
@@ -144,8 +134,15 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
 
     const aspect = (width && height) ? width / height : 1.0;
 
-    // Camera (Fixed at origin lens offset, locked to 90 FOV)
-    const camera = new THREE.PerspectiveCamera(90, aspect, 0.1, 100);
+    // Camera (Fixed at origin lens offset, compensated to lock FOV to in-game 70 degrees frustum)
+    const camera = new THREE.PerspectiveCamera(70, aspect, 0.1, 100);
+    if (aspect >= 1.0) {
+      const halfFovRad = (70.0 / 2.0) * (Math.PI / 180.0);
+      const verticalFovRad = 2.0 * Math.atan(Math.tan(halfFovRad) / aspect);
+      camera.fov = verticalFovRad * (180.0 / Math.PI);
+    } else {
+      camera.fov = 70.0;
+    }
     camera.position.set(0, 0, 0);
     mainCameraRef.current = camera;
 
@@ -420,7 +417,13 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
           currentH = h;
           const newAspect = w / h;
           camera.aspect = newAspect;
-          camera.fov = 90;
+          if (newAspect >= 1.0) {
+            const halfFovRad = (70.0 / 2.0) * (Math.PI / 180.0);
+            const verticalFovRad = 2.0 * Math.atan(Math.tan(halfFovRad) / newAspect);
+            camera.fov = verticalFovRad * (180.0 / Math.PI);
+          } else {
+            camera.fov = 70.0;
+          }
 
           camera.updateProjectionMatrix();
           renderer.setSize(w, h);
@@ -478,11 +481,7 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
       blocksStreamedRef.current = 0;
       activeEntitiesCountRef.current = 0;
       latencyRef.current = 0;
-      if (isInfoOpenRef.current) {
-        setBlocksStreamed(0);
-        setActiveEntitiesCount(0);
-        setLatency(0);
-      }
+
       if (solidMeshRef.current) solidMeshRef.current.count = 0;
       if (solidWireframeMeshRef.current) solidWireframeMeshRef.current.count = 0;
       if (hazardMeshRef.current) hazardMeshRef.current.count = 0;
@@ -496,11 +495,7 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
     blocksStreamedRef.current = 0;
     activeEntitiesCountRef.current = 0;
     latencyRef.current = 0;
-    if (isInfoOpenRef.current) {
-      setBlocksStreamed(0);
-      setActiveEntitiesCount(0);
-      setLatency(0);
-    }
+
     if (solidMeshRef.current) solidMeshRef.current.count = 0;
     if (solidWireframeMeshRef.current) solidWireframeMeshRef.current.count = 0;
     if (hazardMeshRef.current) hazardMeshRef.current.count = 0;
@@ -531,9 +526,7 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
         const currentLatency = currentTime - lastTime;
         lastTime = currentTime;
         latencyRef.current = currentLatency;
-        if (isInfoOpenRef.current) {
-          setLatency(currentLatency);
-        }
+
 
         if (msg.type === "me.orange.crtangarine.shared.FrustumPayloadMessage" && msg.data?.blocks) {
           const payload = msg.data;
@@ -638,9 +631,7 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
           });
 
           blocksStreamedRef.current = solidCount + hazardCount + interactableCount;
-          if (isInfoOpenRef.current) {
-            setBlocksStreamed(blocksStreamedRef.current);
-          }
+
 
           if (solidMeshRef.current) {
             solidMeshRef.current.count = solidCount;
@@ -676,9 +667,7 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
         } else if (msg.type === "me.orange.crtangarine.shared.EntityStreamMessage" && msg.data?.entities) {
           const entities: EntityData[] = msg.data.entities;
           activeEntitiesCountRef.current = entities.length;
-          if (isInfoOpenRef.current) {
-            setActiveEntitiesCount(activeEntitiesCountRef.current);
-          }
+
 
           const group = entitiesGroupRef.current;
           if (!group) return;
@@ -843,29 +832,6 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
           </div>
         )}
 
-        {/* Toggable Info Overlay Button at the top right of camera preview */}
-        {activeCamera && (
-          <>
-            <button 
-              className={`info-toggle-btn ${isInfoOpen ? 'active' : ''}`}
-              onClick={() => setIsInfoOpen(!isInfoOpen)}
-            >
-              [DATA LOG]
-            </button>
-            
-            {isInfoOpen && (
-              <div className="hud-panel-topright">
-                <h3>Active Terminal Data</h3>
-                <div className="hud-item">FEED: {activeCamera.name}</div>
-                <div className="hud-item">COORDINATES: [{Math.round(activeCamera.x)}, {Math.round(activeCamera.y)}, {Math.round(activeCamera.z)}]</div>
-                <div className="hud-item">BLOCKS IN VIEW: {activeCamera.isOnline ? blocksStreamed : 'N/A (OFFLINE)'}</div>
-                <div className="hud-item">ENTITIES DETECTED: {activeCamera.isOnline ? activeEntitiesCount : '0 (OFFLINE)'}</div>
-                <div className="hud-item">STATUS: {activeCamera.isOnline ? 'ONLINE' : 'OFFLINE'}</div>
-                <div className="hud-item">LATENCY: {activeCamera.isOnline ? `${latency} ms` : 'DISCONNECTED'}</div>
-              </div>
-            )}
-          </>
-        )}
       </div>
 
       {!activeCamera && (

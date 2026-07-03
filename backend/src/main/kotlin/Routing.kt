@@ -17,7 +17,11 @@ import me.orange.crtangarine.shared.*
 import org.slf4j.LoggerFactory
 
 @Serializable
-data class LoginRequest(val token: String)
+data class LoginRequest(
+    val token: String? = null,
+    val username: String? = null,
+    val password: String? = null
+)
 
 @Serializable
 data class LoginResponse(val success: Boolean, val message: String, val token: String)
@@ -56,13 +60,68 @@ fun Application.configureRouting() {
         post("/api/login") {
             try {
                 val request = call.receive<LoginRequest>()
-                application.environment.log.info("Received login request with token: ${request.token}")
-                if (TokenRegistry.validateToken(request.token)) {
-                    call.respond(LoginResponse(success = true, message = "Token acknowledged", token = request.token))
+                application.environment.log.info("Received login request: username=${request.username}, hasToken=${request.token != null}")
+                
+                var playerUuid: String? = null
+                var worldId = "global"
+                var sessionToken: String? = null
+                var loginErrorMessage = "Invalid credentials."
+
+                if (request.token != null && request.token.isNotEmpty()) {
+                    val decrypted = me.orange.crtangarine.shared.CryptoUtils.decrypt(request.token)
+                    val username = request.username
+                    if (username != null && username.isNotEmpty()) {
+                        if (decrypted.isNotEmpty()) {
+                            val auth = TokenRegistry.validateCredentials(username, decrypted)
+                            if (auth != null) {
+                                playerUuid = auth.playerUuid
+                                worldId = auth.worldId
+                                sessionToken = TokenRegistry.createSession(username, playerUuid, worldId)
+                            } else {
+                                val exists = TokenRegistry.hasUser(username)
+                                loginErrorMessage = if (!exists) {
+                                    "Player name '$username' is not registered."
+                                } else {
+                                    "Incorrect password token."
+                                }
+                            }
+                        } else {
+                            loginErrorMessage = "Invalid or expired session token."
+                        }
+                    } else {
+                        loginErrorMessage = "Username is required for token auto-login. Direct token login is disabled."
+                    }
+                } else if (request.username != null && request.password != null) {
+                    val username = request.username
+                    val password = request.password
+                    if (username.isEmpty() || password.isEmpty()) {
+                        loginErrorMessage = "Username and password are required."
+                    } else {
+                        val auth = TokenRegistry.validateCredentials(username, password)
+                        if (auth != null) {
+                            playerUuid = auth.playerUuid
+                            worldId = auth.worldId
+                            sessionToken = TokenRegistry.createSession(username, playerUuid, worldId)
+                        } else {
+                            val exists = TokenRegistry.hasUser(username)
+                            loginErrorMessage = if (!exists) {
+                                "Player name '$username' is not registered. Right-click your keycard in Minecraft first."
+                            } else {
+                                "Incorrect password."
+                            }
+                        }
+                    }
                 } else {
-                    call.respond(HttpStatusCode.Unauthorized, LoginResponse(success = false, message = "Invalid token", token = ""))
+                    loginErrorMessage = "Please enter your username and password."
+                }
+
+                if (sessionToken != null) {
+                    call.respond(LoginResponse(success = true, message = "Login successful", token = sessionToken))
+                } else {
+                    call.respond(HttpStatusCode.Unauthorized, LoginResponse(success = false, message = loginErrorMessage, token = ""))
                 }
             } catch (e: Exception) {
+                application.environment.log.error("Login processing error", e)
                 call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid request payload"))
             }
         }

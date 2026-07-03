@@ -90,22 +90,50 @@ class SecurityKeycardItem(properties: Properties) : Item(properties) {
     override fun appendHoverText(stack: ItemStack, context: TooltipContext, tooltip: MutableList<Component>, flag: TooltipFlag) {
         val customData = stack.get(DataComponents.CUSTOM_DATA) ?: CustomData.EMPTY
         val tag = customData.copyTag()
+
+        val ownerName = tag.getString("OwnerName")
+        if (ownerName.isNotEmpty()) {
+            tooltip.add(Component.literal("Owner: $ownerName").withStyle(ChatFormatting.BLUE))
+        } else if (tag.contains("OwnerUUID")) {
+            tooltip.add(Component.literal("Owner UUID: " + tag.getString("OwnerUUID")).withStyle(ChatFormatting.DARK_GRAY))
+        }
+
         if (tag.contains("StationX") && tag.contains("StationY") && tag.contains("StationZ")) {
             val x = tag.getInt("StationX")
             val y = tag.getInt("StationY")
             val z = tag.getInt("StationZ")
-            tooltip.add(Component.literal("linking station $x, $y, $z").withStyle(ChatFormatting.GREEN))
+            tooltip.add(Component.literal("Linking Station at [$x, $y, $z]").withStyle(ChatFormatting.GREEN))
         }
         super.appendHoverText(stack, context, tooltip, flag)
     }
 
+    override fun isFoil(stack: ItemStack): Boolean {
+        val customData = stack.get(DataComponents.CUSTOM_DATA) ?: CustomData.EMPTY
+        val tag = customData.copyTag()
+        return tag.contains("StationX") && tag.contains("StationY") && tag.contains("StationZ")
+    }
+
+    override fun inventoryTick(stack: ItemStack, level: Level, entity: net.minecraft.world.entity.Entity, slotId: Int, isSelected: Boolean) {
+        if (!level.isClientSide && entity is Player) {
+            val customData = stack.get(DataComponents.CUSTOM_DATA) ?: CustomData.EMPTY
+            val tag = customData.copyTag()
+            if (tag.contains("StationX")) {
+                val isHolding = isSelected || entity.getItemInHand(InteractionHand.OFF_HAND) === stack
+                if (!isHolding) {
+                    tag.remove("StationX")
+                    tag.remove("StationY")
+                    tag.remove("StationZ")
+                    stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag))
+                    entity.displayClientMessage(Component.literal("Linking aborted: You stopped holding the keycard!"), true)
+                }
+            }
+        }
+        super.inventoryTick(stack, level, entity, slotId, isSelected)
+    }
+
     override fun onCraftedBy(stack: ItemStack, level: Level, player: Player) {
         super.onCraftedBy(stack, level, player)
-        if (!level.isClientSide) {
-            val worldId = me.orange.crtangarine.world.WorldIdSavedData.get(level as net.minecraft.server.level.ServerLevel).worldId
-            val token = getDeterministicToken(player, worldId)
-            bakeIdentity(stack, player, token, worldId)
-        }
+        // Let the player activate it on right-click to enter their password
     }
 
     override fun use(level: Level, player: Player, hand: InteractionHand): InteractionResultHolder<ItemStack> {
@@ -125,50 +153,54 @@ class SecurityKeycardItem(properties: Properties) : Item(properties) {
         }
 
         val worldId = me.orange.crtangarine.world.WorldIdSavedData.get(level as net.minecraft.server.level.ServerLevel).worldId
-        val token = getDeterministicToken(player, worldId)
 
         if (!tag.contains("OwnerUUID") || !tag.contains("NetworkToken")) {
-            bakeIdentity(stack, player, token, worldId)
+            // Trigger client screen to configure password by sending an empty token
+            if (player is net.minecraft.server.level.ServerPlayer) {
+                net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player, me.orange.crtangarine.network.OpenKeycardScreenPayload(""))
+            }
         } else {
+            val token = tag.getString("NetworkToken")
+            val ownerName = tag.getString("OwnerName")
             // Self-healing: Re-register the token in case the backend server restarted
-            registerTokenWithBackend(player.uuid.toString(), token, worldId)
-        }
-
-        if (player is net.minecraft.server.level.ServerPlayer) {
-            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player, me.orange.crtangarine.network.OpenKeycardScreenPayload(token))
+            registerTokenWithBackend(player.uuid.toString(), token, worldId, ownerName)
+            if (player is net.minecraft.server.level.ServerPlayer) {
+                net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player, me.orange.crtangarine.network.OpenKeycardScreenPayload(token))
+            }
         }
 
         return InteractionResultHolder.success(stack)
     }
 
-    private fun getDeterministicToken(player: Player, worldId: String): String {
-        val input = player.uuid.toString() + worldId + "CRTangarineSecretSalt"
-        return java.util.UUID.nameUUIDFromBytes(input.toByteArray(Charsets.UTF_8)).toString()
-    }
-
-    private fun bakeIdentity(stack: ItemStack, player: Player, token: String, worldId: String) {
+    fun activateWithPassword(stack: ItemStack, player: Player, password: String, worldId: String) {
         val customData = stack.get(DataComponents.CUSTOM_DATA) ?: CustomData.EMPTY
         val tag = customData.copyTag()
-        if (!tag.contains("OwnerUUID")) {
-            tag.putString("OwnerUUID", player.uuid.toString())
-        }
-        if (!tag.contains("NetworkToken")) {
-            tag.putString("NetworkToken", token)
-            registerTokenWithBackend(player.uuid.toString(), token, worldId)
-        }
+        val encryptedPassword = CryptoUtils.encrypt(password)
+
+        tag.putString("OwnerUUID", player.uuid.toString())
+        tag.putString("OwnerName", player.scoreboardName)
+        tag.putString("NetworkToken", encryptedPassword)
         stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag))
+
+        // Register token with backend
+        registerTokenWithBackend(player.uuid.toString(), encryptedPassword, worldId, player.scoreboardName)
+
+        if (player is net.minecraft.server.level.ServerPlayer) {
+            player.displayClientMessage(Component.literal("Keycard security activated successfully!"), true)
+            // Open normal keycard screen now that it is registered
+            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player, me.orange.crtangarine.network.OpenKeycardScreenPayload(encryptedPassword))
+        }
     }
 
-
-    private fun registerTokenWithBackend(playerUuid: String, token: String, worldId: String) {
+    private fun registerTokenWithBackend(playerUuid: String, token: String, worldId: String, playerName: String) {
         CompletableFuture.runAsync {
             try {
-                val encrypted = CryptoUtils.encrypt(token)
                 val packet = AuthTokenPacket(
                     playerUuid = playerUuid,
-                    encryptedToken = encrypted,
+                    encryptedToken = token, // Already encrypted
                     assignedStations = emptyList(),
-                    worldId = worldId
+                    worldId = worldId,
+                    playerName = playerName
                 )
                 val body = kotlinx.serialization.json.Json.encodeToString(packet)
 

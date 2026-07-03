@@ -5,12 +5,18 @@ interface SidebarProps {
   cameras: CameraData[];
   activeCameraId: string | null;
   setActiveCameraId: (id: string) => void;
+  isOpen?: boolean;
+  onClose?: () => void;
+  onLogout?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   cameras,
   activeCameraId,
   setActiveCameraId,
+  isOpen = false,
+  onClose,
+  onLogout,
 }) => {
   // Group cameras by stationName
   const groupedCameras = cameras.reduce((groups, camera) => {
@@ -22,35 +28,60 @@ export const Sidebar: React.FC<SidebarProps> = ({
     return groups;
   }, {} as Record<string, CameraData[]>);
 
+  const handleSelectCamera = (id: string) => {
+    setActiveCameraId(id);
+    if (onClose) {
+      onClose();
+    }
+  };
+
   return (
-    <aside className="camera-list-panel">
-      <h2>Node Select</h2>
-      {cameras.length === 0 ? (
-        <p>No active stations detected.</p>
-      ) : (
-        <div className="station-groups">
-          {Object.entries(groupedCameras).map(([stationName, stationCameras]) => (
-            <div key={stationName} className="station-group">
-              <div className="station-header">{stationName}</div>
-              <ul>
-                {stationCameras.map(camera => (
-                  <li 
-                    key={camera.id} 
-                    className={activeCameraId === camera.id ? 'active' : ''}
-                    onClick={() => setActiveCameraId(camera.id)}
-                  >
-                    <div className="camera-name">
-                      <span className={`status-dot ${camera.isOnline ? 'online' : 'offline'}`}></span>
-                      {camera.name}
-                    </div>
-                    <div className="camera-zone">
-                      GRID [{Math.round(camera.x)}, {Math.round(camera.y)}, {Math.round(camera.z)}]
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+    <aside className={`camera-list-panel ${isOpen ? 'open' : ''}`}>
+      <div className="sidebar-header-row">
+        <h2>Node Select</h2>
+        {onClose && (
+          <button className="sidebar-close-btn" onClick={onClose}>
+            [✕]
+          </button>
+        )}
+      </div>
+
+      <div className="sidebar-content">
+        {cameras.length === 0 ? (
+          <p style={{ padding: '0 0.5rem' }}>No active stations detected.</p>
+        ) : (
+          <div className="station-groups">
+            {Object.entries(groupedCameras).map(([stationName, stationCameras]) => (
+              <div key={stationName} className="station-group">
+                <div className="station-header">{stationName}</div>
+                <ul>
+                  {stationCameras.map(camera => (
+                    <li 
+                      key={camera.id} 
+                      className={activeCameraId === camera.id ? 'active' : ''}
+                      onClick={() => handleSelectCamera(camera.id)}
+                    >
+                      <div className="camera-name">
+                        <span className={`status-dot ${camera.isOnline ? 'online' : 'offline'}`}></span>
+                        {camera.name}
+                      </div>
+                      <div className="camera-zone">
+                        GRID [{Math.round(camera.x)}, {Math.round(camera.y)}, {Math.round(camera.z)}]
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {onLogout && (
+        <div className="sidebar-footer">
+          <button onClick={onLogout} className="logout-btn">
+            DISCONNECT
+          </button>
         </div>
       )}
     </aside>
