@@ -119,9 +119,17 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
     const width = containerRef.current.clientWidth;
     const height = containerRef.current.clientHeight;
 
+    // Calculate maximum 16:9 dimensions that fit in the container
+    let initialW = width;
+    let initialH = width / (16.0 / 9.0);
+    if (initialH > height) {
+      initialH = height;
+      initialW = height * (16.0 / 9.0);
+    }
+
     // Renderer (Antialiasing disabled, capped pixel ratio for performance)
     const renderer = new THREE.WebGLRenderer({ antialias: false });
-    renderer.setSize(width, height);
+    renderer.setSize(initialW, initialH);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     containerRef.current.innerHTML = '';
     containerRef.current.appendChild(renderer.domElement);
@@ -132,17 +140,12 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
     scene.fog = new THREE.FogExp2(0x000800, 0.015);
     renderer.setClearColor(scene.fog.color);
 
-    const aspect = (width && height) ? width / height : 1.0;
-
-    // Camera (Fixed at origin lens offset, compensated to lock FOV to in-game 70 degrees frustum)
-    const camera = new THREE.PerspectiveCamera(70, aspect, 0.1, 100);
-    if (aspect >= 1.0) {
-      const halfFovRad = (70.0 / 2.0) * (Math.PI / 180.0);
-      const verticalFovRad = 2.0 * Math.atan(Math.tan(halfFovRad) / aspect);
-      camera.fov = verticalFovRad * (180.0 / Math.PI);
-    } else {
-      camera.fov = 70.0;
-    }
+    // Camera (Fixed at origin lens offset, locked to 80 degrees horizontal FOV with 16:9 aspect)
+    const aspect = 16.0 / 9.0;
+    const camera = new THREE.PerspectiveCamera(50, aspect, 0.1, 100);
+    const halfFovRad = (80.0 / 2.0) * (Math.PI / 180.0);
+    const verticalFovRad = 2.0 * Math.atan(Math.tan(halfFovRad) / aspect);
+    camera.fov = verticalFovRad * (180.0 / Math.PI);
     camera.position.set(0, 0, 0);
     mainCameraRef.current = camera;
 
@@ -258,7 +261,8 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
       transparent: false,
       polygonOffset: true,
       polygonOffsetFactor: 1,
-      polygonOffsetUnits: 1
+      polygonOffsetUnits: 1,
+      flatShading: true
     });
     customizeMaterial(solidMat);
     const solidMesh = new THREE.InstancedMesh(solidGeom, solidMat, maxInstances);
@@ -288,7 +292,8 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
       transparent: false,
       polygonOffset: true,
       polygonOffsetFactor: 1,
-      polygonOffsetUnits: 1
+      polygonOffsetUnits: 1,
+      flatShading: true
     });
     customizeMaterial(hazardMat);
     const hazardMesh = new THREE.InstancedMesh(hazardGeom, hazardMat, maxInstances);
@@ -318,7 +323,8 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
       transparent: false,
       polygonOffset: true,
       polygonOffsetFactor: 1,
-      polygonOffsetUnits: 1
+      polygonOffsetUnits: 1,
+      flatShading: true
     });
     customizeMaterial(interactableMat);
     const interactableMesh = new THREE.InstancedMesh(interactableGeom, interactableMat, maxInstances);
@@ -377,8 +383,7 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
     scene.add(entitiesGroup);
     entitiesGroupRef.current = entitiesGroup;
 
-    // CRT Post process Shader Pass (Always Enabled)
-    const renderTarget = new THREE.WebGLRenderTarget(width || 1, height || 1);
+    const renderTarget = new THREE.WebGLRenderTarget(initialW, initialH);
     const crtScene = new THREE.Scene();
     const crtOrthoCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, -1, 1);
     
@@ -415,19 +420,22 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
         if (w > 0 && h > 0 && (w !== currentW || h !== currentH)) {
           currentW = w;
           currentH = h;
-          const newAspect = w / h;
-          camera.aspect = newAspect;
-          if (newAspect >= 1.0) {
-            const halfFovRad = (70.0 / 2.0) * (Math.PI / 180.0);
-            const verticalFovRad = 2.0 * Math.atan(Math.tan(halfFovRad) / newAspect);
-            camera.fov = verticalFovRad * (180.0 / Math.PI);
-          } else {
-            camera.fov = 70.0;
+          let renderW = w;
+          let renderH = w / (16.0 / 9.0);
+          if (renderH > h) {
+            renderH = h;
+            renderW = h * (16.0 / 9.0);
           }
 
+          const aspect = 16.0 / 9.0;
+          camera.aspect = aspect;
+          const halfFovRad = (80.0 / 2.0) * (Math.PI / 180.0);
+          const verticalFovRad = 2.0 * Math.atan(Math.tan(halfFovRad) / aspect);
+          camera.fov = verticalFovRad * (180.0 / Math.PI);
+
           camera.updateProjectionMatrix();
-          renderer.setSize(w, h);
-          renderTarget.setSize(w, h);
+          renderer.setSize(renderW, renderH);
+          renderTarget.setSize(renderW, renderH);
         }
       }
 
@@ -606,7 +614,7 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
             const rz = z + 0.5 - camZ;
 
             dummy.position.set(rx, ry, rz);
-            dummy.scale.set(0.98, 0.98, 0.98);
+            dummy.scale.set(1.0, 1.0, 1.0);
             dummy.updateMatrix();
 
             if (S === 1 && solidCount < maxInstances) {
@@ -818,17 +826,46 @@ export const Viewport: React.FC<ViewportProps> = ({ token, activeCamera }) => {
 
   return (
     <section className="feed-viewer-panel">
-      <div className="canvas-container" style={{ display: activeCamera ? 'block' : 'none', width: '100%', height: '100%' }}>
+      <div className="canvas-container" style={{ display: activeCamera ? 'block' : 'none', width: '100%', height: '100%', position: 'relative' }}>
         {/* Raw Canvas Wrapper (only visible when online) */}
         <div 
           ref={containerRef} 
-          style={{ width: '100%', height: '100%', display: (activeCamera && activeCamera.isOnline) ? 'block' : 'none' }}
+          style={{ 
+            width: '100%', 
+            height: '100%', 
+            display: (activeCamera && activeCamera.isOnline) ? 'flex' : 'none',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#000'
+          }}
         ></div>
 
         {/* Glitch Canvas Wrapper (only visible when offline) */}
         {activeCamera && !activeCamera.isOnline && (
-          <div className="glitch-container" style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}>
-            <canvas ref={glitchCanvasRef} style={{ width: '100%', height: '100%', display: 'block' }}></canvas>
+          <div 
+            className="glitch-container" 
+            style={{ 
+              width: '100%', 
+              height: '100%', 
+              position: 'absolute', 
+              top: 0, 
+              left: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: '#000'
+            }}
+          >
+            <canvas 
+              ref={glitchCanvasRef} 
+              style={{ 
+                maxHeight: '100%', 
+                maxWidth: '100%', 
+                aspectRatio: '16 / 9', 
+                objectFit: 'contain',
+                display: 'block' 
+              }}
+            ></canvas>
           </div>
         )}
 
