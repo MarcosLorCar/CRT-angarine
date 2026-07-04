@@ -110,15 +110,27 @@ jobs:
           # Zip the package folder
           zip -r crtangarine-webserver-v${{ env.PROJECT_VERSION }}.zip crtangarine-webserver
 
+      - name: Prepare Release Notes
+        run: |
+          cat << 'EOF' > release_body.md
+          ### Requirements & Compatibility
+          * **Minecraft Version:** ${{ env.MINECRAFT_VERSION }}
+          * **Mod Loader:** NeoForge
+          * **Java Version:** 21
+
+          ### Changelog & Notes
+          EOF
+          if [ -f RELEASE_NOTES.md ]; then
+            cat RELEASE_NOTES.md >> release_body.md
+          else
+            echo "No additional release notes provided." >> release_body.md
+          fi
+
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: "[${{ env.MINECRAFT_VERSION }}] ${{ github.ref_name }}"
-          body: |
-            ### Requirements & Compatibility
-            * **Minecraft Version:** ${{ env.MINECRAFT_VERSION }}
-            * **Mod Loader:** NeoForge
-            * **Java Version:** 21
+          body_path: release_body.md
           files: |
             mod-client/build/libs/crtangarine-client-*.jar
             mod-standalone/build/libs/crtangarine-standalone-*.jar
