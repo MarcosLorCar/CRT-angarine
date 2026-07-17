@@ -34,6 +34,10 @@ fun Application.configureRouting() {
         logger.info("CRT-angarine Webserver is ready! Responding at http://localhost:$port")
     }
 
+    intercept(ApplicationCallPipeline.Plugins) {
+        call.response.headers.append("Clear-Site-Data", "\"cache\"")
+    }
+    
     routing {
         val paths = listOf(
             File("webapp/dist"),
@@ -49,11 +53,31 @@ fun Application.configureRouting() {
                 defaultPage = "index.html"
             }
         } else {
-            logger.info("Serving static frontend files from packaged classpath resources (static/)")
-            singlePageApplication {
-                useResources = true
-                filesPath = "static"
-                defaultPage = "index.html"
+            logger.info("Serving static frontend files from packaged classpath resources (static/) via custom ClassLoader router")
+            get("/{path...}") {
+                val path = call.parameters.getAll("path")?.joinToString("/") ?: ""
+                val resourcePath = if (path.isEmpty()) "static/index.html" else "static/$path"
+                val classLoader = EmbeddedServerLauncher::class.java.classLoader
+                val stream = classLoader.getResourceAsStream(resourcePath)
+                if (stream != null) {
+                    val contentType = when {
+                        resourcePath.endsWith(".html") -> ContentType.Text.Html
+                        resourcePath.endsWith(".css") -> ContentType.Text.CSS
+                        resourcePath.endsWith(".js") -> ContentType.Application.JavaScript
+                        resourcePath.endsWith(".svg") -> ContentType.Image.SVG
+                        resourcePath.endsWith(".json") -> ContentType.Application.Json
+                        resourcePath.endsWith(".ico") -> ContentType.Image.XIcon
+                        else -> ContentType.Application.OctetStream
+                    }
+                    call.respondBytes(stream.readBytes(), contentType)
+                } else {
+                    val indexStream = classLoader.getResourceAsStream("static/index.html")
+                    if (indexStream != null) {
+                        call.respondBytes(indexStream.readBytes(), ContentType.Text.Html)
+                    } else {
+                        call.respond(HttpStatusCode.NotFound, "Not Found")
+                    }
+                }
             }
         }
         
