@@ -83,6 +83,14 @@ cd webapp
 npm run dev
 ```
 
+### 5. Making a Release / Bumping Version
+* **Prerequisite:** Before bumping the project version in `gradle.properties`, you **MUST** update `RELEASE_NOTES.md` with the changelog for the new version.
+* **Why:** The GitHub Actions release workflow (`release.yml`) automatically reads the contents of `RELEASE_NOTES.md` to construct the release notes for the published GitHub Release.
+* **Process:** 
+  1. Document all fixes and enhancements in `RELEASE_NOTES.md`.
+  2. Bump `project_version` in `gradle.properties`.
+  3. Commit, push, and create a git tag (e.g. `v1.0.5`) to trigger the release pipeline.
+
 ---
 
 ## 📡 Data Flow & WebSockets Protocol
